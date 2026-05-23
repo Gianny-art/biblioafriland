@@ -1,4 +1,5 @@
-import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { Bell, Home, Newspaper, Tags, Search, Heart, User, LayoutDashboard, BookOpen, CreditCard, FileText, LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import logo from "@/assets/afriland-logo.webp";
@@ -21,7 +22,7 @@ const mobileNav = [
   { to: "/profil", label: "Profil", icon: User },
 ];
 
-export default function AppLayout() {
+export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });

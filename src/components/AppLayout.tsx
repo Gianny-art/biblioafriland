@@ -96,7 +96,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-6 pb-24 md:pb-8">
-        <Outlet />
+        {children}
       </main>
 
       {/* Mobile bottom nav */}

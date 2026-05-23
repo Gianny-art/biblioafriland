@@ -10,15 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RechercheRouteImport } from './routes/recherche'
+import { Route as ProfilRouteImport } from './routes/profil'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as JournauxRouteImport } from './routes/journaux'
+import { Route as FavorisRouteImport } from './routes/favoris'
+import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as CategoriesRouteImport } from './routes/categories'
+import { Route as AdministrationRouteImport } from './routes/administration'
+import { Route as AbonnementsRouteImport } from './routes/abonnements'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LecteurEditionIdRouteImport } from './routes/lecteur.$editionId'
 
 const RechercheRoute = RechercheRouteImport.update({
   id: '/recherche',
   path: '/recherche',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfilRoute = ProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -31,9 +47,29 @@ const JournauxRoute = JournauxRouteImport.update({
   path: '/journaux',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FavorisRoute = FavorisRouteImport.update({
+  id: '/favoris',
+  path: '/favoris',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentsRoute = DocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoriesRoute = CategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdministrationRoute = AdministrationRouteImport.update({
+  id: '/administration',
+  path: '/administration',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AbonnementsRoute = AbonnementsRouteImport.update({
+  id: '/abonnements',
+  path: '/abonnements',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,26 +85,44 @@ const LecteurEditionIdRoute = LecteurEditionIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/abonnements': typeof AbonnementsRoute
+  '/administration': typeof AdministrationRoute
   '/categories': typeof CategoriesRoute
+  '/documents': typeof DocumentsRoute
+  '/favoris': typeof FavorisRoute
   '/journaux': typeof JournauxRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
+  '/profil': typeof ProfilRoute
   '/recherche': typeof RechercheRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/abonnements': typeof AbonnementsRoute
+  '/administration': typeof AdministrationRoute
   '/categories': typeof CategoriesRoute
+  '/documents': typeof DocumentsRoute
+  '/favoris': typeof FavorisRoute
   '/journaux': typeof JournauxRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
+  '/profil': typeof ProfilRoute
   '/recherche': typeof RechercheRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/abonnements': typeof AbonnementsRoute
+  '/administration': typeof AdministrationRoute
   '/categories': typeof CategoriesRoute
+  '/documents': typeof DocumentsRoute
+  '/favoris': typeof FavorisRoute
   '/journaux': typeof JournauxRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
+  '/profil': typeof ProfilRoute
   '/recherche': typeof RechercheRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
 }
@@ -76,34 +130,58 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/abonnements'
+    | '/administration'
     | '/categories'
+    | '/documents'
+    | '/favoris'
     | '/journaux'
     | '/login'
+    | '/notifications'
+    | '/profil'
     | '/recherche'
     | '/lecteur/$editionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/abonnements'
+    | '/administration'
     | '/categories'
+    | '/documents'
+    | '/favoris'
     | '/journaux'
     | '/login'
+    | '/notifications'
+    | '/profil'
     | '/recherche'
     | '/lecteur/$editionId'
   id:
     | '__root__'
     | '/'
+    | '/abonnements'
+    | '/administration'
     | '/categories'
+    | '/documents'
+    | '/favoris'
     | '/journaux'
     | '/login'
+    | '/notifications'
+    | '/profil'
     | '/recherche'
     | '/lecteur/$editionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AbonnementsRoute: typeof AbonnementsRoute
+  AdministrationRoute: typeof AdministrationRoute
   CategoriesRoute: typeof CategoriesRoute
+  DocumentsRoute: typeof DocumentsRoute
+  FavorisRoute: typeof FavorisRoute
   JournauxRoute: typeof JournauxRoute
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
+  ProfilRoute: typeof ProfilRoute
   RechercheRoute: typeof RechercheRoute
   LecteurEditionIdRoute: typeof LecteurEditionIdRoute
 }
@@ -115,6 +193,20 @@ declare module '@tanstack/react-router' {
       path: '/recherche'
       fullPath: '/recherche'
       preLoaderRoute: typeof RechercheRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profil': {
+      id: '/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof ProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -131,11 +223,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JournauxRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/favoris': {
+      id: '/favoris'
+      path: '/favoris'
+      fullPath: '/favoris'
+      preLoaderRoute: typeof FavorisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documents': {
+      id: '/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof DocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/categories': {
       id: '/categories'
       path: '/categories'
       fullPath: '/categories'
       preLoaderRoute: typeof CategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/administration': {
+      id: '/administration'
+      path: '/administration'
+      fullPath: '/administration'
+      preLoaderRoute: typeof AdministrationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/abonnements': {
+      id: '/abonnements'
+      path: '/abonnements'
+      fullPath: '/abonnements'
+      preLoaderRoute: typeof AbonnementsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -157,9 +277,15 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AbonnementsRoute: AbonnementsRoute,
+  AdministrationRoute: AdministrationRoute,
   CategoriesRoute: CategoriesRoute,
+  DocumentsRoute: DocumentsRoute,
+  FavorisRoute: FavorisRoute,
   JournauxRoute: JournauxRoute,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
+  ProfilRoute: ProfilRoute,
   RechercheRoute: RechercheRoute,
   LecteurEditionIdRoute: LecteurEditionIdRoute,
 }

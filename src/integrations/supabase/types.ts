@@ -218,6 +218,30 @@ export type Database = {
           },
         ]
       }
+      edition_pages: {
+        Row: {
+          created_at: string
+          edition_id: string
+          id: string
+          image_url: string | null
+          page_number: number
+        }
+        Insert: {
+          created_at?: string
+          edition_id: string
+          id?: string
+          image_url?: string | null
+          page_number: number
+        }
+        Update: {
+          created_at?: string
+          edition_id?: string
+          id?: string
+          image_url?: string | null
+          page_number?: number
+        }
+        Relationships: []
+      }
       editions: {
         Row: {
           cover_url: string | null
@@ -394,6 +418,7 @@ export type Database = {
           id: string
           language: string | null
           phone: string | null
+          theme: string | null
           timezone: string | null
           updated_at: string
           user_id: string
@@ -407,6 +432,7 @@ export type Database = {
           id?: string
           language?: string | null
           phone?: string | null
+          theme?: string | null
           timezone?: string | null
           updated_at?: string
           user_id: string
@@ -420,9 +446,52 @@ export type Database = {
           id?: string
           language?: string | null
           phone?: string | null
+          theme?: string | null
           timezone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      regulations: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string | null
+          external_url: string | null
+          id: string
+          pdf_url: string | null
+          published_at: string
+          source: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          external_url?: string | null
+          id?: string
+          pdf_url?: string | null
+          published_at?: string
+          source?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          external_url?: string | null
+          id?: string
+          pdf_url?: string | null
+          published_at?: string
+          source?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -517,6 +586,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      notify_all_users: {
+        Args: { _body: string; _link: string; _title: string; _type?: string }
+        Returns: undefined
       }
     }
     Enums: {

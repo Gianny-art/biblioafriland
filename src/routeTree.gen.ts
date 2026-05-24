@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ReglementationsRouteImport } from './routes/reglementations'
 import { Route as RechercheRouteImport } from './routes/recherche'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -22,6 +24,16 @@ import { Route as AbonnementsRouteImport } from './routes/abonnements'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LecteurEditionIdRouteImport } from './routes/lecteur.$editionId'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReglementationsRoute = ReglementationsRouteImport.update({
+  id: '/reglementations',
+  path: '/reglementations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RechercheRoute = RechercheRouteImport.update({
   id: '/recherche',
   path: '/recherche',
@@ -95,6 +107,8 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/profil': typeof ProfilRoute
   '/recherche': typeof RechercheRoute
+  '/reglementations': typeof ReglementationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +123,8 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/profil': typeof ProfilRoute
   '/recherche': typeof RechercheRoute
+  '/reglementations': typeof ReglementationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
 }
 export interface FileRoutesById {
@@ -124,6 +140,8 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/profil': typeof ProfilRoute
   '/recherche': typeof RechercheRoute
+  '/reglementations': typeof ReglementationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +158,8 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profil'
     | '/recherche'
+    | '/reglementations'
+    | '/reset-password'
     | '/lecteur/$editionId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +174,8 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profil'
     | '/recherche'
+    | '/reglementations'
+    | '/reset-password'
     | '/lecteur/$editionId'
   id:
     | '__root__'
@@ -168,6 +190,8 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profil'
     | '/recherche'
+    | '/reglementations'
+    | '/reset-password'
     | '/lecteur/$editionId'
   fileRoutesById: FileRoutesById
 }
@@ -183,11 +207,27 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   ProfilRoute: typeof ProfilRoute
   RechercheRoute: typeof RechercheRoute
+  ReglementationsRoute: typeof ReglementationsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   LecteurEditionIdRoute: typeof LecteurEditionIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reglementations': {
+      id: '/reglementations'
+      path: '/reglementations'
+      fullPath: '/reglementations'
+      preLoaderRoute: typeof ReglementationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/recherche': {
       id: '/recherche'
       path: '/recherche'
@@ -287,18 +327,10 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   ProfilRoute: ProfilRoute,
   RechercheRoute: RechercheRoute,
+  ReglementationsRoute: ReglementationsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   LecteurEditionIdRoute: LecteurEditionIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

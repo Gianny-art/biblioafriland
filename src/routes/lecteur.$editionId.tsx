@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Heart, Printer, Share2, ArrowLeft, FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Download, Heart, Printer, Share2, ArrowLeft, FileText, Maximize2, Minimize2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
-import { NewspaperLogo } from "@/components/NewspaperLogo";
+import { NewspaperLogo, badgeFor } from "@/components/NewspaperLogo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/lecteur/$editionId")({
@@ -17,18 +17,35 @@ function Reader() {
   const { editionId } = useParams({ from: "/lecteur/$editionId" });
   const { user } = useAuth();
   const [page, setPage] = useState(1);
+  const [fullscreen, setFullscreen] = useState(false);
+  const viewerRef = useRef<HTMLDivElement>(null);
 
   const { data: edition } = useQuery({
     queryKey: ["edition", editionId],
     queryFn: async () => (await supabase.from("editions")
-      .select("id, title, edition_date, page_count, summary, pdf_url, newspaper:newspapers(id,name,slug)")
-      .eq("id", editionId).single()).data,
+      .select("id, title, edition_date, page_count, summary, pdf_url, cover_url, newspaper:newspapers(id,name,slug)")
+      .eq("id", editionId).maybeSingle()).data,
+  });
+
+  const { data: pages = [] } = useQuery({
+    queryKey: ["edition-pages", editionId],
+    queryFn: async () => (await supabase.from("edition_pages").select("page_number,image_url").eq("edition_id", editionId).order("page_number")).data ?? [],
   });
 
   const { data: articles = [] } = useQuery({
     queryKey: ["edition-articles", editionId],
     queryFn: async () => (await supabase.from("articles").select("id,title,page_number,content").eq("edition_id", editionId).order("page_number")).data ?? [],
   });
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") setPage((p) => Math.max(1, p - 1));
+      if (e.key === "ArrowRight") setPage((p) => p + 1);
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const fav = async () => {
     if (!user) return;
@@ -38,58 +55,79 @@ function Reader() {
   const download = async () => {
     if (!user) return;
     await supabase.from("downloads").insert({ user_id: user.id, edition_id: editionId });
+    if (edition?.pdf_url) window.open(edition.pdf_url, "_blank");
     toast.success("Téléchargement enregistré");
   };
+  const toggleFs = async () => {
+    setFullscreen(!fullscreen);
+    try {
+      if (!document.fullscreenElement && viewerRef.current) await viewerRef.current.requestFullscreen();
+      else if (document.fullscreenElement) await document.exitFullscreen();
+    } catch {}
+  };
 
-  if (!edition) return <p>Chargement…</p>;
-  const total = edition.page_count ?? 24;
+  if (!edition) return <p className="text-center py-12 text-muted-foreground">Chargement…</p>;
+  const total = edition.page_count ?? Math.max(pages.length, 12);
+  const currentPageImg = pages.find((p: any) => p.page_number === page)?.image_url;
+  const badge = badgeFor(edition.edition_date);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <Link to="/journaux" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
           <ArrowLeft className="h-4 w-4" /> Retour
         </Link>
-        <div className="text-center">
-          <h1 className="font-semibold">{edition.newspaper.name}</h1>
+        <div className="text-center min-w-0">
+          <h1 className="font-semibold truncate flex items-center gap-2 justify-center">
+            {edition.newspaper.name}
+            {badge === "new" && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary text-primary-foreground">Nouveau</span>}
+          </h1>
           <p className="text-xs text-muted-foreground">{new Date(edition.edition_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button onClick={fav} className="p-2 rounded hover:bg-accent" title="Favori"><Heart className="h-4 w-4" /></button>
           <button onClick={download} className="p-2 rounded hover:bg-accent" title="Télécharger"><Download className="h-4 w-4" /></button>
-          <button onClick={() => window.print()} className="p-2 rounded hover:bg-accent" title="Imprimer"><Printer className="h-4 w-4" /></button>
+          <button onClick={() => window.print()} className="hidden sm:grid p-2 rounded hover:bg-accent place-items-center" title="Imprimer"><Printer className="h-4 w-4" /></button>
           <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Lien copié"); }} className="p-2 rounded hover:bg-accent" title="Partager"><Share2 className="h-4 w-4" /></button>
+          <button onClick={toggleFs} className="p-2 rounded hover:bg-accent" title="Plein écran">
+            {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-[200px_1fr] gap-4">
-        {/* Sommaire pages */}
-        <aside className="bg-card border border-border rounded-xl p-3 max-h-[70vh] overflow-y-auto">
+        <aside className="hidden lg:block bg-card border border-border rounded-xl p-3 max-h-[75vh] overflow-y-auto">
           <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2 px-2">Pages</p>
           <div className="grid grid-cols-2 gap-2">
-            {Array.from({ length: total }, (_, i) => i + 1).map((p) => (
-              <button key={p} onClick={() => setPage(p)}
-                className={`aspect-[3/4] rounded border text-xs ${p === page ? "border-primary ring-2 ring-primary/30" : "border-border"} bg-muted/40 hover:bg-muted`}>
-                <NewspaperLogo slug={edition.newspaper.slug} name={edition.newspaper.name} className="w-full h-full" />
-                <span className="block text-[10px] text-muted-foreground mt-1">Page {p}</span>
-              </button>
-            ))}
+            {Array.from({ length: total }, (_, i) => i + 1).map((p) => {
+              const img = pages.find((pg: any) => pg.page_number === p)?.image_url;
+              return (
+                <button key={p} onClick={() => setPage(p)}
+                  className={`relative aspect-[3/4] rounded border overflow-hidden ${p === page ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
+                  {img ? <img src={img} alt={`Page ${p}`} loading="lazy" className="w-full h-full object-cover" /> :
+                    <div className="w-full h-full bg-muted/40 grid place-items-center text-[10px] text-muted-foreground">P. {p}</div>}
+                </button>
+              );
+            })}
           </div>
         </aside>
 
-        {/* Viewer */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="aspect-[3/4] max-h-[75vh] mx-auto rounded-md overflow-hidden bg-white shadow-card flex items-center justify-center">
-            {edition.pdf_url ? (
-              <iframe src={`${edition.pdf_url}#page=${page}`} className="w-full h-full" />
+        <div ref={viewerRef} className={`bg-card border border-border rounded-xl p-4 ${fullscreen ? "fixed inset-0 z-50 rounded-none" : ""}`}>
+          <div className={`${fullscreen ? "h-[calc(100vh-80px)]" : "h-[70vh] sm:h-[75vh]"} mx-auto rounded-md overflow-hidden bg-white shadow-card flex items-center justify-center`}>
+            {currentPageImg ? (
+              <img src={currentPageImg} alt={`Page ${page}`} className="max-h-full max-w-full object-contain" />
+            ) : edition.pdf_url ? (
+              <iframe src={`${edition.pdf_url}#page=${page}&toolbar=0`} className="w-full h-full" title="PDF" />
             ) : (
-              <div className="text-center p-8">
-                <NewspaperLogo slug={edition.newspaper.slug} name={edition.newspaper.name} className="w-40 h-52 mx-auto" />
+              <div className="text-center p-8 max-w-md">
+                {edition.cover_url
+                  ? <img src={edition.cover_url} alt="" className="w-40 h-52 mx-auto object-cover rounded" />
+                  : <NewspaperLogo slug={edition.newspaper.slug} name={edition.newspaper.name} className="w-40 h-52 mx-auto" />}
                 <p className="mt-6 text-2xl font-bold">{edition.title ?? edition.newspaper.name}</p>
                 <p className="text-sm text-muted-foreground mt-2">Édition du {new Date(edition.edition_date).toLocaleDateString("fr-FR")}</p>
                 <p className="text-xs text-muted-foreground mt-4">Page {page} / {total}</p>
                 {articles.filter((a: any) => a.page_number === page).map((a: any) => (
-                  <div key={a.id} className="mt-6 text-left max-w-md mx-auto">
+                  <div key={a.id} className="mt-6 text-left">
                     <h3 className="font-bold">{a.title}</h3>
                     {a.content && <p className="text-sm text-muted-foreground mt-2">{a.content}</p>}
                   </div>
@@ -97,15 +135,19 @@ function Reader() {
               </div>
             )}
           </div>
-          <div className="flex items-center justify-between mt-4">
-            <button onClick={() => setPage(Math.max(1, page - 1))} className="p-2 rounded hover:bg-accent"><ChevronLeft className="h-4 w-4" /></button>
-            <span className="text-sm">Page {page} / {total}</span>
-            <button onClick={() => setPage(Math.min(total, page + 1))} className="p-2 rounded hover:bg-accent"><ChevronRight className="h-4 w-4" /></button>
+          <div className="flex items-center justify-between mt-3">
+            <button onClick={() => setPage(Math.max(1, page - 1))} className="h-10 px-3 rounded hover:bg-accent flex items-center gap-1 text-sm">
+              <ChevronLeft className="h-4 w-4" /> Préc.
+            </button>
+            <span className="text-sm font-medium">Page {page} / {total}</span>
+            <button onClick={() => setPage(Math.min(total, page + 1))} className="h-10 px-3 rounded hover:bg-accent flex items-center gap-1 text-sm">
+              Suiv. <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      {articles.length > 0 && (
+      {articles.length > 0 && !fullscreen && (
         <section className="bg-card border border-border rounded-xl p-5">
           <h2 className="font-semibold mb-3 flex items-center gap-2"><FileText className="h-4 w-4" /> Sommaire des articles</h2>
           <ul className="divide-y divide-border">

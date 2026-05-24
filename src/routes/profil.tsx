@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { Lock, Save, LogOut } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Lock, LogOut, Camera, ShieldCheck, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
+import { MotifBg } from "@/components/Motif";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/profil")({
@@ -15,83 +16,134 @@ export const Route = createFileRoute("/profil")({
 function Page() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ display_name: "", email: "", phone: "", department: "", language: "fr", timezone: "UTC+1 Yaoundé" });
-  const [pwd, setPwd] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState<"idle" | "request" | "verify">("idle");
+  const [otp, setOtp] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const { data: profile } = useQuery({
+  const { data: profile, refetch } = useQuery({
     queryKey: ["profile", user?.id],
     enabled: !!user,
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("user_id", user!.id).single()).data,
+    queryFn: async () => (await supabase.from("profiles").select("*").eq("user_id", user!.id).maybeSingle()).data,
   });
 
-  useEffect(() => {
-    if (profile) setForm({
-      display_name: profile.display_name ?? "",
-      email: profile.email ?? user?.email ?? "",
-      phone: profile.phone ?? "",
-      department: profile.department ?? "",
-      language: profile.language ?? "fr",
-      timezone: profile.timezone ?? "UTC+1 Yaoundé",
-    });
-  }, [profile, user]);
+  useEffect(() => {}, []);
 
-  const save = async () => {
-    await supabase.from("profiles").update(form).eq("user_id", user!.id);
-    toast.success("Profil mis à jour");
+  const uploadAvatar = async (file: File) => {
+    if (!user) return;
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) return toast.error(error.message);
+    const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+    await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
+    toast.success("Photo de profil mise à jour");
+    refetch();
   };
-  const changePwd = async () => {
-    if (pwd.length < 6) return toast.error("6 caractères minimum");
-    const { error } = await supabase.auth.updateUser({ password: pwd });
-    if (error) toast.error(error.message); else { toast.success("Mot de passe modifié"); setPwd(""); }
+
+  const requestOtp = async () => {
+    if (!user?.email) return;
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithOtp({ email: user.email, options: { shouldCreateUser: false } });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else { setStep("verify"); toast.success("Code envoyé par email"); }
   };
+
+  const verifyAndChange = async () => {
+    if (!user?.email) return;
+    if (newPwd.length < 8) return toast.error("Mot de passe : 8 caractères minimum");
+    setBusy(true);
+    const { error: vErr } = await supabase.auth.verifyOtp({ email: user.email, token: otp, type: "email" });
+    if (vErr) { setBusy(false); return toast.error("Code invalide"); }
+    const { error } = await supabase.auth.updateUser({ password: newPwd });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Mot de passe modifié");
+    setStep("idle"); setOtp(""); setNewPwd("");
+  };
+
+  const initials = (profile?.display_name || user?.email || "U").slice(0, 2).toUpperCase();
 
   return (
-    <div className="grid md:grid-cols-[280px_1fr] gap-6 max-w-4xl">
-      <aside className="bg-card border border-border rounded-xl p-5 h-fit text-center">
-        <div className="h-20 w-20 rounded-full bg-primary text-primary-foreground mx-auto grid place-items-center text-2xl font-bold">
-          {(form.display_name || form.email || "U").slice(0, 1).toUpperCase()}
+    <div className="grid md:grid-cols-[300px_1fr] gap-6 max-w-4xl relative">
+      <MotifBg opacity={0.04} />
+      <aside className="relative bg-card border border-border rounded-xl p-6 h-fit text-center">
+        <div className="relative h-24 w-24 mx-auto">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="h-24 w-24 rounded-full object-cover" />
+          ) : (
+            <div className="h-24 w-24 rounded-full bg-primary text-primary-foreground grid place-items-center text-2xl font-bold">
+              {initials}
+            </div>
+          )}
+          <button onClick={() => fileRef.current?.click()} className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-card border border-border grid place-items-center shadow-sm hover:bg-accent">
+            <Camera className="h-4 w-4" />
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])} />
         </div>
-        <h2 className="font-semibold mt-3">{form.display_name || "Utilisateur"}</h2>
-        <p className="text-xs text-muted-foreground">{form.department || "Analyste"}</p>
+        <h2 className="font-semibold mt-4">{profile?.display_name ?? "Utilisateur"}</h2>
+        <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1"><Mail className="h-3 w-3" />{user?.email}</p>
         <button onClick={() => { signOut(); navigate({ to: "/login" }); }}
-          className="mt-5 w-full h-10 rounded-md border border-border text-sm flex items-center justify-center gap-2 hover:bg-accent">
+          className="mt-6 w-full h-10 rounded-md border border-border text-sm flex items-center justify-center gap-2 hover:bg-accent">
           <LogOut className="h-4 w-4" /> Se déconnecter
         </button>
       </aside>
 
-      <div className="space-y-6">
-        <section className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="font-semibold">Mon profil</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Nom complet" value={form.display_name} onChange={(v) => setForm({ ...form, display_name: v })} />
-            <Field label="Email" value={form.email} disabled />
-            <Field label="Téléphone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
-            <Field label="Département" value={form.department} onChange={(v) => setForm({ ...form, department: v })} />
-            <Field label="Langue" value={form.language} onChange={(v) => setForm({ ...form, language: v })} />
-            <Field label="Fuseau horaire" value={form.timezone} onChange={(v) => setForm({ ...form, timezone: v })} />
+      <div className="relative space-y-6">
+        <section className="bg-card border border-border rounded-xl p-6">
+          <h2 className="font-semibold flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Compte</h2>
+          <div className="mt-4 grid sm:grid-cols-2 gap-4 text-sm">
+            <Field label="Nom" value={profile?.display_name ?? "—"} />
+            <Field label="Email" value={user?.email ?? "—"} />
+            <Field label="Membre depuis" value={user?.created_at ? new Date(user.created_at).toLocaleDateString("fr-FR") : "—"} />
+            <Field label="Dernière connexion" value={user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString("fr-FR") : "—"} />
           </div>
-          <button onClick={save} className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm flex items-center gap-2"><Save className="h-4 w-4" /> Modifier le profil</button>
+          <p className="text-xs text-muted-foreground mt-4">Ces informations sont automatiquement synchronisées depuis votre identité d'entreprise.</p>
         </section>
 
         <section className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="font-semibold flex items-center gap-2"><Lock className="h-4 w-4" /> Sécurité</h2>
-          <div className="flex items-end gap-3 max-w-md">
-            <Field label="Nouveau mot de passe" value={pwd} onChange={setPwd} type="password" />
-            <button onClick={changePwd} className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm shrink-0">Changer</button>
-          </div>
+          <h2 className="font-semibold flex items-center gap-2"><Lock className="h-5 w-5" /> Mot de passe — Validation en 2 étapes</h2>
+          <p className="text-xs text-muted-foreground">Pour modifier votre mot de passe, nous envoyons d'abord un code à 6 chiffres sur votre email professionnel.</p>
+
+          {step === "idle" && (
+            <button onClick={() => { setStep("request"); requestOtp(); }} disabled={busy}
+              className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-60">
+              {busy ? "Envoi…" : "Envoyer le code de vérification"}
+            </button>
+          )}
+          {step === "verify" && (
+            <div className="space-y-3 max-w-md">
+              <label className="block text-xs">
+                <span className="text-muted-foreground">Code reçu par email</span>
+                <input value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6}
+                  className="mt-1 w-full h-11 px-3 rounded-md border border-border bg-background tracking-[0.5em] text-center font-mono" />
+              </label>
+              <label className="block text-xs">
+                <span className="text-muted-foreground">Nouveau mot de passe (8+ caractères)</span>
+                <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
+                  className="mt-1 w-full h-11 px-3 rounded-md border border-border bg-background" />
+              </label>
+              <div className="flex gap-2">
+                <button disabled={busy} onClick={verifyAndChange} className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-60">
+                  {busy ? "…" : "Vérifier et changer"}
+                </button>
+                <button onClick={() => { setStep("idle"); setOtp(""); setNewPwd(""); }} className="h-10 px-4 rounded-md border border-border text-sm">Annuler</button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>
   );
 }
 
-function Field({ label, value, onChange, disabled, type = "text" }: { label: string; value: string; onChange?: (v: string) => void; disabled?: boolean; type?: string }) {
+function Field({ label, value }: { label: string; value: string }) {
   return (
-    <label className="block">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <input type={type} value={value} disabled={disabled}
-        onChange={(e) => onChange?.(e.target.value)}
-        className="mt-1 w-full h-10 px-3 rounded-md border border-border bg-background text-sm disabled:bg-muted/50" />
-    </label>
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium mt-1">{value}</p>
+    </div>
   );
 }

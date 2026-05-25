@@ -148,7 +148,7 @@ function Login() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="input mt-1"
-                  placeholder="ex. Jean Dupont"
+                  placeholder="ex. Simo Alfred"
                 />
               </label>
             )}

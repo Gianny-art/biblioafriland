@@ -43,7 +43,7 @@ function RootComponent() {
         <I18nProvider>
           <AuthProvider>
             <Outlet />
-            <Toaster position="top-right" richColors closeButton />
+            <Toaster position="top-right" richColors closeButton duration={2500} />
           </AuthProvider>
         </I18nProvider>
       </ThemeProvider>

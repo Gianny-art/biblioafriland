@@ -1,0 +1,25 @@
+# Développement avec hot reload : docker compose -f docker-compose.dev.yml up
+services:
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: afriland-app-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
+    command: bun run dev --host 0.0.0.0 --port 8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

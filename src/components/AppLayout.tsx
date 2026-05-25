@@ -9,6 +9,7 @@ import icon from "@/assets/afriland-icon.webp";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MotifBand } from "@/components/Motif";
+import motifAsset from "@/assets/motif.png";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, role, signOut } = useAuth();
@@ -40,7 +41,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     { to: "/recherche", label: t("search"), icon: Search },
   ];
 
-  // Mobile bottom nav (5 items)
+  // Mobile bottom nav (5 items) — sans Abonnements ni Documents
   const mobileNav = [
     { to: "/", label: t("home"), icon: Home },
     { to: "/journaux", label: t("newspapers"), icon: Newspaper },
@@ -49,64 +50,68 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     { to: "/profil", label: t("profile"), icon: User },
   ];
 
-  // Hamburger items: exclude what is in bottom nav
+  // Hamburger items
   const hamburgerExtras = [
     { to: "/recherche", label: t("search"), icon: Search },
     { to: "/categories", label: t("categories"), icon: Tags },
-    { to: "/abonnements", label: t("subscriptions"), icon: CreditCard },
-    { to: "/documents", label: t("documents"), icon: FileText },
     { to: "/notifications", label: t("notifications"), icon: Bell },
-    ...(role === "admin" ? [{ to: "/administration", label: t("administration"), icon: LayoutDashboard }] : []),
+    ...(role === "admin" ? [{ to: "/administration", label: "Dashboard Admin", icon: LayoutDashboard }] : []),
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 h-16 flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src={icon} alt="Afriland First Bank" className="h-9 w-9 object-contain" />
+    <div className="min-h-screen flex flex-col bg-background relative overflow-x-hidden">
+      {/* motifs stratégiques d'arrière-plan */}
+      <div aria-hidden className="pointer-events-none fixed -top-32 -right-32 w-[420px] h-[420px] opacity-[0.06] dark:opacity-[0.04]"
+        style={{ backgroundImage: `url(${motifAsset})`, backgroundSize: "260px", backgroundRepeat: "repeat" }} />
+      <div aria-hidden className="pointer-events-none fixed bottom-0 -left-24 w-[360px] h-[360px] opacity-[0.05] dark:opacity-[0.035]"
+        style={{ backgroundImage: `url(${motifAsset})`, backgroundSize: "220px", backgroundRepeat: "repeat" }} />
+
+      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border">
+        <div className="mx-auto max-w-[1400px] px-6 lg:px-10 h-20 flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-3 shrink-0">
+            <img src={icon} alt="Afriland First Bank" className="h-11 w-11 object-contain" />
             <span className="hidden sm:flex flex-col leading-none">
-              <span className="font-bold text-sm">Afriland First Bank</span>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">Bibliothèque numérique</span>
+              <span className="font-bold text-base">Afriland First Bank</span>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">Bibliothèque numérique</span>
             </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-1 ml-4">
+          <nav className="hidden md:flex items-center gap-1 ml-2">
             {mainNav.map((n) => {
               const active = path === n.to || (n.to !== "/" && path.startsWith(n.to));
               return (
                 <Link key={n.to} to={n.to}
-                  className={`px-3 py-2 text-sm font-medium rounded-md transition ${active ? "text-primary border-b-2 border-primary rounded-none" : "text-foreground/70 hover:text-foreground hover:bg-accent"}`}>
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition ${active ? "text-primary border-b-2 border-primary rounded-none" : "text-foreground/70 hover:text-foreground hover:bg-accent"}`}>
                   {n.label}
                 </Link>
               );
             })}
           </nav>
-          <div className="hidden lg:flex flex-1 max-w-md ml-4">
+          <div className="hidden xl:flex flex-1 max-w-md ml-auto">
             <SearchBar />
           </div>
-          <div className="flex-1 lg:hidden" />
+          <div className="flex-1 xl:hidden" />
 
-          <button onClick={toggle} title={t("theme")} className="hidden md:grid p-2 rounded-md hover:bg-accent place-items-center">
+          <button onClick={toggle} title={t("theme")} className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center">
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
           <button onClick={() => setLang(lang === "fr" ? "en" : "fr")} title={t("lang")}
-            className="hidden md:flex items-center gap-1 px-2 py-2 rounded-md hover:bg-accent text-xs font-medium uppercase">
+            className="hidden md:flex items-center gap-1 px-2.5 py-2 rounded-md hover:bg-accent text-xs font-medium uppercase">
             <Languages className="h-4 w-4" /> {lang}
           </button>
 
-          <Link to="/notifications" className="relative p-2 rounded-md hover:bg-accent">
+          <Link to="/notifications" className="relative p-2.5 rounded-md hover:bg-accent">
             <Bell className="h-5 w-5" />
-            {unread > 0 && <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />}
+            {unread > 0 && <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{unread > 9 ? "9+" : unread}</span>}
           </Link>
-          <Link to="/profil" className="hidden md:grid p-2 rounded-md hover:bg-accent place-items-center" title={t("profile")}>
+          <Link to="/profil" className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center" title={t("profile")}>
             <User className="h-5 w-5" />
           </Link>
           {role === "admin" && (
-            <Link to="/administration" className="hidden md:grid p-2 rounded-md hover:bg-accent place-items-center" title="Admin">
-              <LayoutDashboard className="h-5 w-5" />
+            <Link to="/administration" className="hidden md:flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 text-primary hover:bg-primary/15 text-sm font-medium" title="Dashboard Admin">
+              <LayoutDashboard className="h-4 w-4" /> Admin
             </Link>
           )}
-          <button onClick={() => { signOut(); navigate({ to: "/login" }); }} className="hidden md:grid p-2 rounded-md hover:bg-accent place-items-center" title={t("logout")}>
+          <button onClick={() => { signOut(); navigate({ to: "/login" }); }} className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center" title={t("logout")}>
             <LogOut className="h-5 w-5" />
           </button>
           <button className="md:hidden p-2" onClick={() => setMenuOpen(!menuOpen)} aria-label="menu">
@@ -138,7 +143,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-6 pb-24 md:pb-8 relative">
+      <main className="flex-1 mx-auto w-full max-w-[1400px] px-6 lg:px-10 py-8 lg:py-12 pb-24 md:pb-12 relative">
         {children}
       </main>
 

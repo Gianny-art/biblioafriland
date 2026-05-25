@@ -13,7 +13,7 @@ export function useNotificationStream(userId: string | undefined) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
         (payload: any) => {
           const n = payload.new;
-          toast(n.title, { description: n.body });
+          toast(n.title, { description: n.body, duration: 3500 });
           if ("Notification" in window && Notification.permission === "granted") {
             try {
               new Notification(`Bibliothèque Afriland — ${n.title}`, {

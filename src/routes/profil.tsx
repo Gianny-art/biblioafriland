@@ -5,7 +5,7 @@ import { Lock, LogOut, Camera, ShieldCheck, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
-import { MotifBg } from "@/components/Motif";
+
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/profil")({
@@ -67,9 +67,9 @@ function Page() {
   const initials = (profile?.display_name || user?.email || "U").slice(0, 2).toUpperCase();
 
   return (
-    <div className="grid md:grid-cols-[300px_1fr] gap-6 max-w-4xl relative">
-      <MotifBg opacity={0.04} />
-      <aside className="relative bg-card border border-border rounded-xl p-6 h-fit text-center">
+    <div className="grid lg:grid-cols-[340px_1fr] gap-8 max-w-6xl mx-auto relative">
+      <aside className="relative bg-card border border-border rounded-2xl p-8 h-fit text-center shadow-sm">
+
         <div className="relative h-24 w-24 mx-auto">
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="h-24 w-24 rounded-full object-cover" />

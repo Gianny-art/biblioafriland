@@ -1,8 +1,8 @@
 const palette: Record<string, { bg: string; fg: string; label: string }> = {
   "cameroon-tribune": { bg: "#1d4ed8", fg: "#fff", label: "Cameroon Tribune" },
-  "leconomiste-du-cameroun": { bg: "#dc2626", fg: "#fff", label: "L'Économiste" },
+  "leconomiste-du-cameroun": { bg: "#808080", fg: "#fff", label: "L'Économiste" },
   "le-jour": { bg: "#0f172a", fg: "#fff", label: "Le Jour" },
-  "mutations": { bg: "#b91c1c", fg: "#fff", label: "Mutations" },
+  mutations: { bg: "#b91c1c", fg: "#fff", label: "Mutations" },
   "financial-afrik": { bg: "#111827", fg: "#facc15", label: "Financial Afrik" },
   "investir-au-cameroun": { bg: "#15803d", fg: "#fff", label: "Investir au Cameroun" },
   "jeune-afrique": { bg: "#dc2626", fg: "#fff", label: "Jeune Afrique" },
@@ -12,9 +12,16 @@ const palette: Record<string, { bg: string; fg: string; label: string }> = {
 };
 
 export function NewspaperLogo({
-  slug, name, className = "", coverUrl, badge,
+  slug,
+  name,
+  className = "",
+  coverUrl,
+  badge,
 }: {
-  slug: string; name: string; className?: string; coverUrl?: string | null;
+  slug: string;
+  name: string;
+  className?: string;
+  coverUrl?: string | null;
   badge?: "new" | "old" | null;
 }) {
   const p = palette[slug] ?? { bg: "#dc2626", fg: "#fff", label: name };

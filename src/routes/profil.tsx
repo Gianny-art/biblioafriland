@@ -5,7 +5,7 @@ import { Lock, LogOut, Camera, ShieldCheck, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
-import { MotifBg } from "@/components/Motif";
+
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/profil")({

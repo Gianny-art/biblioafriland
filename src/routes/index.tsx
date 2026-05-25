@@ -8,7 +8,11 @@ import AppLayout from "@/components/AppLayout";
 import { NewspaperLogo } from "@/components/NewspaperLogo";
 
 export const Route = createFileRoute("/")({
-  component: () => <AppLayout><Home /></AppLayout>,
+  component: () => (
+    <AppLayout>
+      <Home />
+    </AppLayout>
+  ),
 });
 
 function Home() {
@@ -18,9 +22,13 @@ function Home() {
   const { data: todayEditions = [] } = useQuery({
     queryKey: ["editions-today"],
     queryFn: async () => {
-      const { data } = await supabase.from("editions")
-        .select("id, title, edition_date, page_count, newspaper:newspapers(id,name,slug,frequency,category:categories(name,slug,color))")
-        .order("created_at", { ascending: false }).limit(12);
+      const { data } = await supabase
+        .from("editions")
+        .select(
+          "id, title, edition_date, page_count, newspaper:newspapers(id,name,slug,frequency,category:categories(name,slug,color))",
+        )
+        .order("created_at", { ascending: false })
+        .limit(12);
       return data ?? [];
     },
   });
@@ -28,8 +36,11 @@ function Home() {
   const { data: recommended = [] } = useQuery({
     queryKey: ["recommended"],
     queryFn: async () => {
-      const { data } = await supabase.from("articles")
-        .select("id, title, page_number, edition:editions(id, edition_date, newspaper:newspapers(name, slug, category:categories(name)))")
+      const { data } = await supabase
+        .from("articles")
+        .select(
+          "id, title, page_number, edition:editions(id, edition_date, newspaper:newspapers(name, slug, category:categories(name)))",
+        )
         .limit(3);
       return data ?? [];
     },
@@ -57,22 +68,33 @@ function Home() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Bonjour {profile?.display_name ?? "coéquipier"} 👋</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Bonjour {profile?.display_name ?? ""}</h1>
         <p className="text-muted-foreground text-sm mt-1">Voici les dernières parutions disponibles</p>
       </div>
 
       <section className="bg-card rounded-xl border border-border p-5 shadow-card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">À la une aujourd'hui</h2>
-          <Link to="/journaux" className="text-sm text-primary">Voir tout</Link>
+          <Link to="/journaux" className="text-sm text-primary">
+            Voir tout
+          </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {todayEditions.slice(0, 5).map((e: any) => (
-            <Link key={e.id} to="/lecteur/$editionId" params={{ editionId: e.id }}
-              className="group">
-              <NewspaperLogo slug={e.newspaper.slug} name={e.newspaper.name} className="aspect-[3/4] mb-2 group-hover:shadow-elegant transition" />
+            <Link key={e.id} to="/lecteur/$editionId" params={{ editionId: e.id }} className="group">
+              <NewspaperLogo
+                slug={e.newspaper.slug}
+                name={e.newspaper.name}
+                className="aspect-[3/4] mb-2 group-hover:shadow-elegant transition"
+              />
               <p className="font-medium text-sm truncate">{e.newspaper.name}</p>
-              <p className="text-xs text-muted-foreground">{new Date(e.edition_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(e.edition_date).toLocaleDateString("fr-FR", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </p>
               {e.newspaper.category && (
                 <span className="inline-block mt-1 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                   {e.newspaper.category.name}
@@ -88,9 +110,17 @@ function Home() {
           <h2 className="font-semibold mb-4">Recommandés pour vous</h2>
           <div className="space-y-3">
             {recommended.map((a: any) => (
-              <Link key={a.id} to="/lecteur/$editionId" params={{ editionId: a.edition.id }}
-                className="flex gap-3 p-3 rounded-lg hover:bg-accent transition">
-                <NewspaperLogo slug={a.edition.newspaper.slug} name={a.edition.newspaper.name} className="w-16 h-20 shrink-0" />
+              <Link
+                key={a.id}
+                to="/lecteur/$editionId"
+                params={{ editionId: a.edition.id }}
+                className="flex gap-3 p-3 rounded-lg hover:bg-accent transition"
+              >
+                <NewspaperLogo
+                  slug={a.edition.newspaper.slug}
+                  name={a.edition.newspaper.name}
+                  className="w-16 h-20 shrink-0"
+                />
                 <div className="min-w-0">
                   <p className="font-medium text-sm">{a.title}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -98,7 +128,8 @@ function Home() {
                   </p>
                   {a.edition.newspaper.category && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      {a.edition.newspaper.category.name} • {new Date(a.edition.edition_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                      {a.edition.newspaper.category.name} •{" "}
+                      {new Date(a.edition.edition_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                     </p>
                   )}
                 </div>
@@ -114,7 +145,9 @@ function Home() {
             <Stat icon={SearchIcon} label="Recherches effectuées" value={stats?.searches ?? 0} />
             <Stat icon={Bell} label="Alertes actives" value={stats?.alerts ?? 0} />
           </div>
-          <Link to="/profil" className="block text-sm text-primary mt-4">Voir mon activité</Link>
+          <Link to="/profil" className="block text-sm text-primary mt-4">
+            Voir mon activité
+          </Link>
         </section>
       </div>
     </div>

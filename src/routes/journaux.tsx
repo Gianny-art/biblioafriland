@@ -17,10 +17,27 @@ export const Route = createFileRoute("/journaux")({
 
 
 function Page() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const qc = useQueryClient();
   const [tab, setTab] = useState<"archives" | "recent" | "downloads">("recent");
   const [newspaperId, setNewspaperId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ file: File; newspaperId: string; analysis: any } | null>(null);
+
+  const handleDrop = async (e: React.DragEvent, np: any) => {
+    e.preventDefault();
+    setDropTarget(null);
+    if (role !== "admin") return toast.error("Réservé aux admins");
+    const file = e.dataTransfer.files?.[0];
+    if (!file || file.type !== "application/pdf") return toast.error("Déposez un PDF");
+    toast.message("Analyse du PDF…");
+    try {
+      const analysis = await analyzePdf(file);
+      setPending({ file, newspaperId: np.id, analysis });
+    } catch { toast.error("Analyse impossible"); }
+  };
+
 
   const { data: newspapers = [] } = useQuery({
     queryKey: ["newspapers"],

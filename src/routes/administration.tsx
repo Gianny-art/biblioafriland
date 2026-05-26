@@ -257,11 +257,53 @@ function EditionDialog({ edition, onClose, onSaved }: { edition?: any; onClose: 
     edition_date: edition?.edition_date ?? new Date().toISOString().slice(0, 10),
     title: edition?.title ?? "",
     summary: edition?.summary ?? "",
-    page_count: edition?.page_count ?? 12,
+    page_count: edition?.page_count ?? 1,
   });
   const [pdf, setPdf] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [extractedText, setExtractedText] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  const handleFile = async (file: File) => {
+    setPdf(file);
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    const isWord = /\.(docx?|odt)$/i.test(file.name) || file.type.includes("word") || file.type.includes("opendocument");
+    if (!isPdf && !isWord) return toast.error("Format non supporté (PDF ou Word uniquement)");
+
+    setAnalyzing(true);
+    try {
+      if (isPdf) {
+        const { analyzePdf } = await import("@/lib/pdf-analyze");
+        const a = await analyzePdf(file);
+        setForm((f) => ({
+          ...f,
+          page_count: a.pageCount || f.page_count,
+          title: f.title || a.title || "",
+        }));
+        toast.success(`PDF analysé : ${a.pageCount} page(s)`);
+      } else {
+        // Estimation Word: ~3000 caractères/page après lecture brute (sans dépendance lourde)
+        const text = await file.text().catch(() => "");
+        const est = Math.max(1, Math.ceil(text.length / 3000));
+        setForm((f) => ({ ...f, page_count: est }));
+        if (text.trim().length > 50) setExtractedText(text.slice(0, 2000));
+        toast.success(`Document Word — ~${est} page(s) estimées`);
+      }
+    } catch (e: any) {
+      toast.error("Analyse impossible : " + (e?.message ?? "erreur"));
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleFile(f);
+  };
 
   const save = async () => {
     if (!form.newspaper_id) return toast.error("Sélectionnez un journal");
@@ -269,34 +311,37 @@ function EditionDialog({ edition, onClose, onSaved }: { edition?: any; onClose: 
     let pdf_url: string | null = edition?.pdf_url ?? null;
     let cover_url: string | null = edition?.cover_url ?? null;
     if (pdf) {
-      const path = `editions/${form.newspaper_id}/${form.edition_date}-${Date.now()}.pdf`;
+      const ext = pdf.name.split(".").pop() || "pdf";
+      const path = `editions/${form.newspaper_id}/${form.edition_date}-${Date.now()}.${ext}`;
       const { error } = await supabase.storage.from("newspaper-pdfs").upload(path, pdf);
-      if (error) { setSaving(false); return toast.error(error.message); }
+      if (error) { setSaving(false); return toast.error("Upload : " + error.message); }
       pdf_url = supabase.storage.from("newspaper-pdfs").getPublicUrl(path).data.publicUrl;
     }
     if (cover) {
       const path = `covers/${form.newspaper_id}/${form.edition_date}-${Date.now()}.${cover.name.split(".").pop()}`;
       const { error } = await supabase.storage.from("newspaper-pdfs").upload(path, cover);
-      if (error) { setSaving(false); return toast.error(error.message); }
+      if (error) { setSaving(false); return toast.error("Couverture : " + error.message); }
       cover_url = supabase.storage.from("newspaper-pdfs").getPublicUrl(path).data.publicUrl;
     }
+
+    const summaryValue = form.summary || (extractedText ? extractedText.slice(0, 500) : null);
 
     if (isEdit) {
       const { error } = await supabase.from("editions").update({
         newspaper_id: form.newspaper_id, edition_date: form.edition_date,
-        title: form.title || null, summary: form.summary || null,
+        title: form.title || null, summary: summaryValue,
         page_count: form.page_count, pdf_url, cover_url,
       }).eq("id", edition.id);
       setSaving(false);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error("Enregistrement : " + error.message);
       toast.success("Parution mise à jour");
     } else {
       const { data: ed, error } = await supabase.from("editions").insert({
         newspaper_id: form.newspaper_id, edition_date: form.edition_date,
-        title: form.title || null, summary: form.summary || null,
+        title: form.title || null, summary: summaryValue,
         page_count: form.page_count, pdf_url, cover_url,
       }).select().single();
-      if (error) { setSaving(false); return toast.error(error.message); }
+      if (error) { setSaving(false); return toast.error("Publication : " + error.message); }
       if (ed) {
         const pageRows = Array.from({ length: form.page_count }, (_, i) => ({
           edition_id: ed.id, page_number: i + 1, image_url: pdf_url ? `${pdf_url}#page=${i + 1}` : null,
@@ -309,10 +354,37 @@ function EditionDialog({ edition, onClose, onSaved }: { edition?: any; onClose: 
     onSaved();
   };
 
+  const showSummary = !!form.summary || !!extractedText;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 grid place-items-center p-4" onClick={onClose}>
       <div className="bg-card rounded-xl border border-border max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between"><h2 className="font-bold text-lg">{isEdit ? "Modifier la parution" : "Charger une parution"}</h2><button onClick={onClose}><X className="h-5 w-5" /></button></div>
+
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition cursor-pointer ${dragOver ? "border-primary bg-primary/5" : "border-border"}`}
+          onClick={() => document.getElementById("edition-file-input")?.click()}
+        >
+          <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+          {analyzing ? (
+            <p className="text-sm text-primary">Analyse en cours…</p>
+          ) : pdf ? (
+            <div className="text-sm">
+              <p className="font-medium truncate">{pdf.name}</p>
+              <p className="text-xs text-muted-foreground mt-1">{(pdf.size / 1024 / 1024).toFixed(2)} Mo · {form.page_count} page(s) détectée(s)</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-medium">Glissez-déposez le document ici</p>
+              <p className="text-xs text-muted-foreground mt-1">PDF ou Word (.pdf, .doc, .docx) — analyse automatique</p>
+            </>
+          )}
+          <input id="edition-file-input" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+        </div>
+
         <label className="block text-xs"><span className="text-muted-foreground">Journal</span>
           <select value={form.newspaper_id} onChange={(e) => setForm({ ...form, newspaper_id: e.target.value })} className="mt-1 w-full h-10 px-3 rounded-md border border-border bg-background text-sm">
             <option value="">—</option>
@@ -321,18 +393,16 @@ function EditionDialog({ edition, onClose, onSaved }: { edition?: any; onClose: 
         </label>
         <Input label="Date d'édition" type="date" value={form.edition_date} onChange={(v) => setForm({ ...form, edition_date: v })} />
         <Input label="Titre de la une (optionnel)" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
-        <Input label="Résumé (optionnel)" value={form.summary} onChange={(v) => setForm({ ...form, summary: v })} />
-        <Input label="Nombre de pages" type="number" value={String(form.page_count)} onChange={(v) => setForm({ ...form, page_count: Math.max(1, parseInt(v) || 1) })} />
-        <label className="block text-xs"><span className="text-muted-foreground">PDF (remplace l'actuel si fourni)</span>
-          <div className="mt-1 flex items-center gap-2 p-3 border border-dashed border-border rounded-md">
-            <Upload className="h-4 w-4 text-muted-foreground" />
-            <input type="file" accept="application/pdf" onChange={(e) => setPdf(e.target.files?.[0] ?? null)} className="text-xs" />
-          </div>
-        </label>
-        <label className="block text-xs"><span className="text-muted-foreground">Couverture (remplace l'actuelle si fournie)</span>
+        <Input label="Nombre de pages (auto)" type="number" value={String(form.page_count)} onChange={(v) => setForm({ ...form, page_count: Math.max(1, parseInt(v) || 1) })} />
+
+        {showSummary && (
+          <Input label="Contenu extrait" value={form.summary || extractedText.slice(0, 500)} onChange={(v) => setForm({ ...form, summary: v })} />
+        )}
+
+        <label className="block text-xs"><span className="text-muted-foreground">Couverture (image — optionnel)</span>
           <input type="file" accept="image/*" onChange={(e) => setCover(e.target.files?.[0] ?? null)} className="mt-1 text-xs" />
         </label>
-        <button disabled={saving} onClick={save} className="w-full h-11 rounded-md bg-primary text-primary-foreground font-medium disabled:opacity-60">
+        <button disabled={saving || analyzing} onClick={save} className="w-full h-11 rounded-md bg-primary text-primary-foreground font-medium disabled:opacity-60">
           {saving ? "Enregistrement…" : isEdit ? "Mettre à jour" : "Publier (notifie tous les utilisateurs)"}
         </button>
       </div>

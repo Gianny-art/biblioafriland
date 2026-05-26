@@ -1,17 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
 import { NewspaperLogo, badgeFor } from "@/components/NewspaperLogo";
 import { MotifBg } from "@/components/Motif";
-import { Filter } from "lucide-react";
+import { Filter, X } from "lucide-react";
+import { analyzePdf } from "@/lib/pdf-analyze";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/journaux")({
   head: () => ({ meta: [{ title: "Bibliothèque — Journaux" }] }),
   component: () => <AppLayout><Page /></AppLayout>,
 });
+
 
 function Page() {
   const { user } = useAuth();

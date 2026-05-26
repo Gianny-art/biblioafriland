@@ -66,9 +66,17 @@ function Reader() {
     } catch {}
   };
 
+  // PDF page count detection (autoritative when pdf is loaded)
+  const [pdfPageCount, setPdfPageCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!edition?.pdf_url) return;
+    getPdfPageCount(edition.pdf_url).then(setPdfPageCount).catch(() => {});
+  }, [edition?.pdf_url]);
+
   if (!edition) return <p className="text-center py-12 text-muted-foreground">Chargement…</p>;
-  const total = edition.page_count ?? Math.max(pages.length, 12);
+  const total = pdfPageCount ?? edition.page_count ?? Math.max(pages.length, 1);
   const currentPageImg = pages.find((p: any) => p.page_number === page)?.image_url;
+  const hasPdf = !!edition.pdf_url;
   const badge = badgeFor(edition.edition_date);
 
   return (

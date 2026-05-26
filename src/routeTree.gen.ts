@@ -23,6 +23,7 @@ import { Route as AdministrationRouteImport } from './routes/administration'
 import { Route as AbonnementsRouteImport } from './routes/abonnements'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LecteurEditionIdRouteImport } from './routes/lecteur.$editionId'
+import { Route as ApiPublicRefreshNewsRouteImport } from './routes/api/public/refresh-news'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -94,6 +95,11 @@ const LecteurEditionIdRoute = LecteurEditionIdRouteImport.update({
   path: '/lecteur/$editionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRefreshNewsRoute = ApiPublicRefreshNewsRouteImport.update({
+  id: '/api/public/refresh-news',
+  path: '/api/public/refresh-news',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/reglementations': typeof ReglementationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
+  '/api/public/refresh-news': typeof ApiPublicRefreshNewsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/reglementations': typeof ReglementationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
+  '/api/public/refresh-news': typeof ApiPublicRefreshNewsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/reglementations': typeof ReglementationsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/lecteur/$editionId': typeof LecteurEditionIdRoute
+  '/api/public/refresh-news': typeof ApiPublicRefreshNewsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/reglementations'
     | '/reset-password'
     | '/lecteur/$editionId'
+    | '/api/public/refresh-news'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/reglementations'
     | '/reset-password'
     | '/lecteur/$editionId'
+    | '/api/public/refresh-news'
   id:
     | '__root__'
     | '/'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/reglementations'
     | '/reset-password'
     | '/lecteur/$editionId'
+    | '/api/public/refresh-news'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +222,7 @@ export interface RootRouteChildren {
   ReglementationsRoute: typeof ReglementationsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   LecteurEditionIdRoute: typeof LecteurEditionIdRoute
+  ApiPublicRefreshNewsRoute: typeof ApiPublicRefreshNewsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LecteurEditionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/refresh-news': {
+      id: '/api/public/refresh-news'
+      path: '/api/public/refresh-news'
+      fullPath: '/api/public/refresh-news'
+      preLoaderRoute: typeof ApiPublicRefreshNewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -330,17 +350,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReglementationsRoute: ReglementationsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   LecteurEditionIdRoute: LecteurEditionIdRoute,
+  ApiPublicRefreshNewsRoute: ApiPublicRefreshNewsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

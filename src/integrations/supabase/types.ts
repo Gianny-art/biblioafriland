@@ -170,6 +170,7 @@ export type Database = {
           color: string | null
           created_at: string
           id: string
+          image_url: string | null
           name: string
           slug: string
         }
@@ -177,6 +178,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           name: string
           slug: string
         }
@@ -184,6 +186,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           id?: string
+          image_url?: string | null
           name?: string
           slug?: string
         }
@@ -328,6 +331,39 @@ export type Database = {
           },
         ]
       }
+      news_feed: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          published_at: string
+          source: string
+          summary: string | null
+          title: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source: string
+          summary?: string | null
+          title: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source?: string
+          summary?: string | null
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
       newspapers: {
         Row: {
           active: boolean
@@ -453,6 +489,33 @@ export type Database = {
         }
         Relationships: []
       }
+      regulation_sources: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          last_checked_at: string | null
+          name: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_checked_at?: string | null
+          name: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_checked_at?: string | null
+          name?: string
+          url?: string
+        }
+        Relationships: []
+      }
       regulations: {
         Row: {
           content: string | null
@@ -460,6 +523,7 @@ export type Database = {
           created_by: string | null
           external_url: string | null
           id: string
+          image_url: string | null
           pdf_url: string | null
           published_at: string
           source: string
@@ -473,6 +537,7 @@ export type Database = {
           created_by?: string | null
           external_url?: string | null
           id?: string
+          image_url?: string | null
           pdf_url?: string | null
           published_at?: string
           source?: string
@@ -486,6 +551,7 @@ export type Database = {
           created_by?: string | null
           external_url?: string | null
           id?: string
+          image_url?: string | null
           pdf_url?: string | null
           published_at?: string
           source?: string

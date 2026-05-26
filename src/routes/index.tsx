@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
 import { NewspaperLogo } from "@/components/NewspaperLogo";
+import NewsTicker from "@/components/NewsTicker";
+
+
 
 export const Route = createFileRoute("/")({
   component: () => (
@@ -150,8 +153,11 @@ function Home() {
           </Link>
         </section>
       </div>
+
+      <NewsTicker />
     </div>
   );
+
 }
 
 function Stat({ icon: I, label, value }: any) {

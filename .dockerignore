@@ -19,3 +19,4 @@ README.md
 docs
 supabase/.branches
 supabase/.temp
+src/routeTree.gen.ts

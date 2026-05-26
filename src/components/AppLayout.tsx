@@ -20,6 +20,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  console.log("🔐 AppLayout DEBUG:", { user: user?.id, role, email: user?.email });
+
   useNotificationStream(user?.id);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, Heart, Printer, Share2, ArrowLeft, FileText, Maximize2, Minimize2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, Share2, ArrowLeft, FileText, Maximize2, Minimize2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
@@ -37,6 +37,11 @@ function Reader() {
     queryFn: async () => (await supabase.from("articles").select("id,title,page_number,content").eq("edition_id", editionId).order("page_number")).data ?? [],
   });
 
+  // Enregistre la consultation
+  useEffect(() => {
+    if (user && editionId) supabase.from("downloads").insert({ user_id: user.id, edition_id: editionId }).then(() => {});
+  }, [user, editionId]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") setPage((p) => Math.max(1, p - 1));
@@ -52,12 +57,6 @@ function Reader() {
     await supabase.from("favorites").insert({ user_id: user.id, edition_id: editionId });
     toast.success("Ajouté aux favoris");
   };
-  const download = async () => {
-    if (!user) return;
-    await supabase.from("downloads").insert({ user_id: user.id, edition_id: editionId });
-    if (edition?.pdf_url) window.open(edition.pdf_url, "_blank");
-    toast.success("Téléchargement enregistré");
-  };
   const toggleFs = async () => {
     setFullscreen(!fullscreen);
     try {
@@ -72,7 +71,7 @@ function Reader() {
   const badge = badgeFor(edition.edition_date);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 select-none" onContextMenu={(e) => e.preventDefault()}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Link to="/journaux" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
           <ArrowLeft className="h-4 w-4" /> Retour
@@ -86,8 +85,6 @@ function Reader() {
         </div>
         <div className="flex items-center gap-1">
           <button onClick={fav} className="p-2 rounded hover:bg-accent" title="Favori"><Heart className="h-4 w-4" /></button>
-          <button onClick={download} className="p-2 rounded hover:bg-accent" title="Télécharger"><Download className="h-4 w-4" /></button>
-          <button onClick={() => window.print()} className="hidden sm:grid p-2 rounded hover:bg-accent place-items-center" title="Imprimer"><Printer className="h-4 w-4" /></button>
           <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Lien copié"); }} className="p-2 rounded hover:bg-accent" title="Partager"><Share2 className="h-4 w-4" /></button>
           <button onClick={toggleFs} className="p-2 rounded hover:bg-accent" title="Plein écran">
             {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -104,7 +101,7 @@ function Reader() {
               return (
                 <button key={p} onClick={() => setPage(p)}
                   className={`relative aspect-[3/4] rounded border overflow-hidden ${p === page ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
-                  {img ? <img src={img} alt={`Page ${p}`} loading="lazy" className="w-full h-full object-cover" /> :
+                  {img ? <img src={img} alt={`Page ${p}`} loading="lazy" className="w-full h-full object-cover pointer-events-none" /> :
                     <div className="w-full h-full bg-muted/40 grid place-items-center text-[10px] text-muted-foreground">P. {p}</div>}
                 </button>
               );
@@ -113,11 +110,11 @@ function Reader() {
         </aside>
 
         <div ref={viewerRef} className={`bg-card border border-border rounded-xl p-4 ${fullscreen ? "fixed inset-0 z-50 rounded-none" : ""}`}>
-          <div className={`${fullscreen ? "h-[calc(100vh-80px)]" : "h-[70vh] sm:h-[75vh]"} mx-auto rounded-md overflow-hidden bg-white shadow-card flex items-center justify-center`}>
+          <div className={`${fullscreen ? "h-[calc(100vh-80px)]" : "h-[70vh] sm:h-[75vh]"} mx-auto rounded-md overflow-hidden bg-white shadow-card flex items-center justify-center relative`}>
             {currentPageImg ? (
-              <img src={currentPageImg} alt={`Page ${page}`} className="max-h-full max-w-full object-contain" />
+              <img src={currentPageImg} alt={`Page ${page}`} draggable={false} className="max-h-full max-w-full object-contain pointer-events-none" />
             ) : edition.pdf_url ? (
-              <iframe src={`${edition.pdf_url}#page=${page}&toolbar=0`} className="w-full h-full" title="PDF" />
+              <iframe src={`${edition.pdf_url}#page=${page}&toolbar=0&navpanes=0`} className="w-full h-full" title="PDF" />
             ) : (
               <div className="text-center p-8 max-w-md">
                 {edition.cover_url
@@ -134,6 +131,9 @@ function Reader() {
                 ))}
               </div>
             )}
+            <div className="absolute bottom-2 right-3 text-[10px] text-black/30 uppercase tracking-widest font-bold pointer-events-none">
+              {user?.email} · Afriland confidentiel
+            </div>
           </div>
           <div className="flex items-center justify-between mt-3">
             <button onClick={() => setPage(Math.max(1, page - 1))} className="h-10 px-3 rounded hover:bg-accent flex items-center gap-1 text-sm">
@@ -162,6 +162,8 @@ function Reader() {
           </ul>
         </section>
       )}
+
+      <style>{`@media print { body { display: none !important; } }`}</style>
     </div>
   );
 }

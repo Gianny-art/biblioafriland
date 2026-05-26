@@ -322,6 +322,15 @@ function EditionDialog({ edition, onClose, onSaved }: { edition?: any; onClose: 
       const { error } = await supabase.storage.from("newspaper-pdfs").upload(path, cover);
       if (error) { setSaving(false); return toast.error("Couverture : " + error.message); }
       cover_url = supabase.storage.from("newspaper-pdfs").getPublicUrl(path).data.publicUrl;
+    } else if (!cover_url && pdf && /\.pdf$/i.test(pdf.name)) {
+      // Auto-génération de la couverture depuis la page 1 du PDF
+      try {
+        const { renderPdfPageToBlob } = await import("@/components/PdfPage");
+        const blob = await renderPdfPageToBlob(pdf, 1, 1.5);
+        const path = `covers/${form.newspaper_id}/${form.edition_date}-${Date.now()}-auto.jpg`;
+        const { error } = await supabase.storage.from("newspaper-pdfs").upload(path, blob, { contentType: "image/jpeg" });
+        if (!error) cover_url = supabase.storage.from("newspaper-pdfs").getPublicUrl(path).data.publicUrl;
+      } catch (e) { /* ignore */ }
     }
 
     const summaryValue = form.summary || (extractedText ? extractedText.slice(0, 500) : null);

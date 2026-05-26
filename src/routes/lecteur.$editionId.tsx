@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
 import { NewspaperLogo, badgeFor } from "@/components/NewspaperLogo";
+import { PdfPage, getPdfPageCount } from "@/components/PdfPage";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/lecteur/$editionId")({
@@ -65,9 +66,17 @@ function Reader() {
     } catch {}
   };
 
+  // PDF page count detection (autoritative when pdf is loaded)
+  const [pdfPageCount, setPdfPageCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!edition?.pdf_url) return;
+    getPdfPageCount(edition.pdf_url).then(setPdfPageCount).catch(() => {});
+  }, [edition?.pdf_url]);
+
   if (!edition) return <p className="text-center py-12 text-muted-foreground">Chargement…</p>;
-  const total = edition.page_count ?? Math.max(pages.length, 12);
+  const total = pdfPageCount ?? edition.page_count ?? Math.max(pages.length, 1);
   const currentPageImg = pages.find((p: any) => p.page_number === page)?.image_url;
+  const hasPdf = !!edition.pdf_url;
   const badge = badgeFor(edition.edition_date);
 
   return (
@@ -98,11 +107,18 @@ function Reader() {
           <div className="grid grid-cols-2 gap-2">
             {Array.from({ length: total }, (_, i) => i + 1).map((p) => {
               const img = pages.find((pg: any) => pg.page_number === p)?.image_url;
+              const isImageUrl = img && !/#page=/.test(img);
               return (
                 <button key={p} onClick={() => setPage(p)}
-                  className={`relative aspect-[3/4] rounded border overflow-hidden ${p === page ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
-                  {img ? <img src={img} alt={`Page ${p}`} loading="lazy" className="w-full h-full object-cover pointer-events-none" /> :
-                    <div className="w-full h-full bg-muted/40 grid place-items-center text-[10px] text-muted-foreground">P. {p}</div>}
+                  className={`relative aspect-[3/4] rounded border overflow-hidden bg-white ${p === page ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
+                  {isImageUrl ? (
+                    <img src={img} alt={`Page ${p}`} loading="lazy" className="w-full h-full object-cover pointer-events-none" />
+                  ) : hasPdf ? (
+                    <PdfPage url={edition.pdf_url!} pageNumber={p} scale={0.4} fit="width" />
+                  ) : (
+                    <div className="w-full h-full bg-muted/40 grid place-items-center text-[10px] text-muted-foreground">P. {p}</div>
+                  )}
+                  <span className="absolute bottom-0 left-0 right-0 text-[9px] bg-black/50 text-white text-center py-0.5">Page {p}</span>
                 </button>
               );
             })}
@@ -110,11 +126,11 @@ function Reader() {
         </aside>
 
         <div ref={viewerRef} className={`bg-card border border-border rounded-xl p-4 ${fullscreen ? "fixed inset-0 z-50 rounded-none" : ""}`}>
-          <div className={`${fullscreen ? "h-[calc(100vh-80px)]" : "h-[70vh] sm:h-[75vh]"} mx-auto rounded-md overflow-hidden bg-white shadow-card flex items-center justify-center relative`}>
-            {currentPageImg ? (
+          <div className={`${fullscreen ? "h-[calc(100vh-80px)]" : "h-[70vh] sm:h-[85vh]"} mx-auto rounded-md overflow-hidden bg-white shadow-card flex items-center justify-center relative`}>
+            {currentPageImg && !/#page=/.test(currentPageImg) ? (
               <img src={currentPageImg} alt={`Page ${page}`} draggable={false} className="max-h-full max-w-full object-contain pointer-events-none" />
-            ) : edition.pdf_url ? (
-              <iframe src={`${edition.pdf_url}#page=${page}&toolbar=0&navpanes=0`} className="w-full h-full" title="PDF" />
+            ) : hasPdf ? (
+              <PdfPage url={edition.pdf_url!} pageNumber={page} scale={2} />
             ) : (
               <div className="text-center p-8 max-w-md">
                 {edition.cover_url

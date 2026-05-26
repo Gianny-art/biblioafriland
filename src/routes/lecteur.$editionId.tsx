@@ -114,7 +114,7 @@ function Reader() {
                   {isImageUrl ? (
                     <img src={img} alt={`Page ${p}`} loading="lazy" className="w-full h-full object-cover pointer-events-none" />
                   ) : hasPdf ? (
-                    <PdfPage url={edition.pdf_url} pageNumber={p} scale={0.4} fit="width" />
+                    <PdfPage url={edition.pdf_url!} pageNumber={p} scale={0.4} fit="width" />
                   ) : (
                     <div className="w-full h-full bg-muted/40 grid place-items-center text-[10px] text-muted-foreground">P. {p}</div>
                   )}
@@ -130,7 +130,7 @@ function Reader() {
             {currentPageImg && !/#page=/.test(currentPageImg) ? (
               <img src={currentPageImg} alt={`Page ${page}`} draggable={false} className="max-h-full max-w-full object-contain pointer-events-none" />
             ) : hasPdf ? (
-              <PdfPage url={edition.pdf_url} pageNumber={page} scale={2} />
+              <PdfPage url={edition.pdf_url!} pageNumber={page} scale={2} />
             ) : (
               <div className="text-center p-8 max-w-md">
                 {edition.cover_url

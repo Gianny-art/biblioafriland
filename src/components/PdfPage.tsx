@@ -78,3 +78,18 @@ export async function getPdfPageCount(url: string): Promise<number> {
   const doc = await loadDoc(url);
   return doc.numPages;
 }
+
+export async function renderPdfPageToBlob(file: File | ArrayBuffer, pageNumber = 1, scale = 1.5): Promise<Blob> {
+  const data = file instanceof ArrayBuffer ? file : await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data }).promise;
+  const page = await doc.getPage(Math.min(pageNumber, doc.numPages));
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext("2d")!;
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  return await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/jpeg", 0.85),
+  );
+}

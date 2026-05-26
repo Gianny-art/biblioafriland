@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
 import { NewspaperLogo, badgeFor } from "@/components/NewspaperLogo";
+import { PdfPage, getPdfPageCount } from "@/components/PdfPage";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/lecteur/$editionId")({

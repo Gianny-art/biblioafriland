@@ -31,13 +31,18 @@ function Page() {
   useEffect(() => {}, []);
 
   const uploadAvatar = async (file: File) => {
-    if (!user) return;
+    if (!user) return toast.error("Non connecté");
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-    if (error) return toast.error(error.message);
+    const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (upErr) return toast.error(upErr.message);
     const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
-    await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
+    // Upsert défensif : crée le profil s'il n'existe pas (trigger handle_new_user peut avoir manqué)
+    const { error: pErr } = await supabase.from("profiles").upsert(
+      { user_id: user.id, email: user.email, avatar_url: url },
+      { onConflict: "user_id" }
+    );
+    if (pErr) return toast.error(pErr.message);
     toast.success("Photo de profil mise à jour");
     refetch();
   };

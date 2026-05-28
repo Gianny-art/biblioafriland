@@ -344,6 +344,18 @@ function EditionDialog({ edition, onClose, onSaved }: { edition?: any; onClose: 
         if (!error) cover_url = supabase.storage.from("newspaper-pdfs").getPublicUrl(path).data.publicUrl;
       } catch (e) { /* ignore */ }
     }
+    // Si pas de couverture définie, on hérite de la dernière parution de la même source
+    if (!cover_url) {
+      const { data: prev } = await supabase
+        .from("editions")
+        .select("cover_url")
+        .eq("newspaper_id", form.newspaper_id)
+        .not("cover_url", "is", null)
+        .order("edition_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (prev?.cover_url) cover_url = prev.cover_url;
+    }
 
     const summaryValue = form.summary || (extractedText ? extractedText.slice(0, 500) : null);
 

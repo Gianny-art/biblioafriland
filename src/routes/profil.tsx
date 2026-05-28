@@ -29,6 +29,32 @@ function Page() {
     queryFn: async () => (await supabase.from("profiles").select("*").eq("user_id", user!.id).maybeSingle()).data,
   });
 
+  const { data: activity } = useQuery({
+    queryKey: ["my-activity", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [dls, srch, fav, alr, recent] = await Promise.all([
+        supabase.from("downloads").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase.from("search_history").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase.from("favorites").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase.from("alerts").select("id", { count: "exact", head: true }).eq("user_id", user!.id).eq("active", true),
+        supabase.from("downloads")
+          .select("downloaded_at, edition:editions(id, edition_date, title, newspaper:newspapers(name,slug))")
+          .eq("user_id", user!.id)
+          .order("downloaded_at", { ascending: false })
+          .limit(8),
+      ]);
+      return {
+        downloads: dls.count ?? 0,
+        searches: srch.count ?? 0,
+        favorites: fav.count ?? 0,
+        alerts: alr.count ?? 0,
+        recent: recent.data ?? [],
+      };
+    },
+
+  });
+
   useEffect(() => {}, []);
 
   const uploadAvatar = async (file: File) => {

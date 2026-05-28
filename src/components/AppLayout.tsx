@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { Bell, Home, Newspaper, Tags, Search, Heart, User, LayoutDashboard, BookOpen, CreditCard, FileText, LogOut, Menu, X, Sun, Moon, Languages, Scale } from "lucide-react";
+import { Bell, Home, Newspaper, Tags, Search, Heart, User, LayoutDashboard, BookOpen, CreditCard, FileText, LogOut, Menu, X, Sun, Moon, Scale } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { useT } from "@/lib/i18n";
@@ -14,7 +14,7 @@ import motifAsset from "@/assets/motif.png";
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, role, signOut } = useAuth();
   const { theme, toggle } = useTheme();
-  const { lang, setLang, t } = useT();
+  const { t } = useT();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [unread, setUnread] = useState(0);
@@ -94,10 +94,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <button onClick={toggle} title={t("theme")} className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center">
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
-          <button onClick={() => setLang(lang === "fr" ? "en" : "fr")} title={t("lang")}
-            className="hidden md:flex items-center gap-1 px-2.5 py-2 rounded-md hover:bg-accent text-xs font-medium uppercase">
-            <Languages className="h-4 w-4" /> {lang}
-          </button>
+
 
           <Link to="/notifications" className="relative p-2.5 rounded-md hover:bg-accent">
             <Bell className="h-5 w-5" />
@@ -106,11 +103,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <Link to="/profil" className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center" title={t("profile")}>
             <User className="h-5 w-5" />
           </Link>
-          {role === "admin" && (
-            <Link to="/administration" className="hidden md:flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 text-primary hover:bg-primary/15 text-sm font-medium" title="Dashboard Admin">
-              <LayoutDashboard className="h-4 w-4" /> Admin
-            </Link>
-          )}
+
+
           <button onClick={() => { signOut(); navigate({ to: "/login" }); }} className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center" title={t("logout")}>
             <LogOut className="h-5 w-5" />
           </button>
@@ -132,9 +126,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {theme === "dark" ? t("light") : t("dark")}
             </button>
-            <button onClick={() => setLang(lang === "fr" ? "en" : "fr")} className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent">
-              <Languages className="h-4 w-4" />{lang === "fr" ? "English" : "Français"}
-            </button>
+
+
             <button onClick={() => { signOut(); navigate({ to: "/login" }); }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-primary hover:bg-accent">
               <LogOut className="h-4 w-4" />{t("logout")}

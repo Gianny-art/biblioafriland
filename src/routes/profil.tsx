@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { Lock, LogOut, Camera, ShieldCheck, Mail, Activity, Eye, Search as SearchIcon, Star, Bell } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { LogOut, Camera, ShieldCheck, Mail, Activity, Eye, Search as SearchIcon, Star, Bell, LayoutDashboard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
@@ -15,13 +15,10 @@ export const Route = createFileRoute("/profil")({
 
 
 function Page() {
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<"idle" | "request" | "verify">("idle");
-  const [otp, setOtp] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-  const [busy, setBusy] = useState(false);
+
 
   const { data: profile, refetch } = useQuery({
     queryKey: ["profile", user?.id],
@@ -74,27 +71,8 @@ function Page() {
     refetch();
   };
 
-  const requestOtp = async () => {
-    if (!user?.email) return;
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithOtp({ email: user.email, options: { shouldCreateUser: false } });
-    setBusy(false);
-    if (error) toast.error(error.message);
-    else { setStep("verify"); toast.success("Code envoyé par email"); }
-  };
 
-  const verifyAndChange = async () => {
-    if (!user?.email) return;
-    if (newPwd.length < 8) return toast.error("Mot de passe : 8 caractères minimum");
-    setBusy(true);
-    const { error: vErr } = await supabase.auth.verifyOtp({ email: user.email, token: otp, type: "email" });
-    if (vErr) { setBusy(false); return toast.error("Code invalide"); }
-    const { error } = await supabase.auth.updateUser({ password: newPwd });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Mot de passe modifié");
-    setStep("idle"); setOtp(""); setNewPwd("");
-  };
+
 
   const initials = (profile?.display_name || user?.email || "U").slice(0, 2).toUpperCase();
 
@@ -135,37 +113,17 @@ function Page() {
           <p className="text-xs text-muted-foreground mt-4">Ces informations sont automatiquement synchronisées depuis votre identité d'entreprise.</p>
         </section>
 
-        <section className="bg-card border border-border rounded-xl p-6 space-y-4">
-          <h2 className="font-semibold flex items-center gap-2"><Lock className="h-5 w-5" /> Mot de passe — Validation en 2 étapes</h2>
-          <p className="text-xs text-muted-foreground">Pour modifier votre mot de passe, nous envoyons d'abord un code à 6 chiffres sur votre email professionnel.</p>
+        {role === "admin" && (
+          <section className="bg-card border border-border rounded-xl p-6">
+            <h2 className="font-semibold flex items-center gap-2"><LayoutDashboard className="h-5 w-5 text-primary" /> Panneau d'administration</h2>
+            <p className="text-xs text-muted-foreground mt-2">Accès aux statistiques, gestion des journaux, éditions et utilisateurs.</p>
+            <Link to="/administration"
+              className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90">
+              <LayoutDashboard className="h-4 w-4" /> Ouvrir le tableau de bord
+            </Link>
+          </section>
+        )}
 
-          {step === "idle" && (
-            <button onClick={() => { setStep("request"); requestOtp(); }} disabled={busy}
-              className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-60">
-              {busy ? "Envoi…" : "Envoyer le code de vérification"}
-            </button>
-          )}
-          {step === "verify" && (
-            <div className="space-y-3 max-w-md">
-              <label className="block text-xs">
-                <span className="text-muted-foreground">Code reçu par email</span>
-                <input value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6}
-                  className="mt-1 w-full h-11 px-3 rounded-md border border-border bg-background tracking-[0.5em] text-center font-mono" />
-              </label>
-              <label className="block text-xs">
-                <span className="text-muted-foreground">Nouveau mot de passe (8+ caractères)</span>
-                <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
-                  className="mt-1 w-full h-11 px-3 rounded-md border border-border bg-background" />
-              </label>
-              <div className="flex gap-2">
-                <button disabled={busy} onClick={verifyAndChange} className="h-10 px-4 rounded-md bg-primary text-primary-foreground text-sm disabled:opacity-60">
-                  {busy ? "…" : "Vérifier et changer"}
-                </button>
-                <button onClick={() => { setStep("idle"); setOtp(""); setNewPwd(""); }} className="h-10 px-4 rounded-md border border-border text-sm">Annuler</button>
-              </div>
-            </div>
-          )}
-        </section>
 
         <section className="bg-card border border-border rounded-xl p-6">
           <h2 className="font-semibold flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Mon activité</h2>

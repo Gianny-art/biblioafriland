@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Lock, LogOut, Camera, ShieldCheck, Mail } from "lucide-react";
+import { Lock, LogOut, Camera, ShieldCheck, Mail, Activity, Eye, Search as SearchIcon, Star, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
@@ -12,6 +12,7 @@ export const Route = createFileRoute("/profil")({
   head: () => ({ meta: [{ title: "Mon profil — Bibliothèque numérique" }] }),
   component: () => <AppLayout><Page /></AppLayout>,
 });
+
 
 function Page() {
   const { user, signOut } = useAuth();

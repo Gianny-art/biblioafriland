@@ -157,11 +157,14 @@ function Home() {
         </section>
       </div>
 
+      <NewsChannel />
+
       <NewsTicker />
     </div>
   );
 
 }
+
 
 function Stat({ icon: I, label, value }: any) {
   return (

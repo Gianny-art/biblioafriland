@@ -126,9 +126,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {theme === "dark" ? t("light") : t("dark")}
             </button>
-            <button onClick={() => setLang(lang === "fr" ? "en" : "fr")} className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent">
-              <Languages className="h-4 w-4" />{lang === "fr" ? "English" : "Français"}
-            </button>
+
+
             <button onClick={() => { signOut(); navigate({ to: "/login" }); }}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-primary hover:bg-accent">
               <LogOut className="h-4 w-4" />{t("logout")}

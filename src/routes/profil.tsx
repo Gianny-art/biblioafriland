@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { Lock, LogOut, Camera, ShieldCheck, Mail, Activity, Eye, Search as SearchIcon, Star, Bell } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { LogOut, Camera, ShieldCheck, Mail, Activity, Eye, Search as SearchIcon, Star, Bell, LayoutDashboard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
@@ -15,13 +15,10 @@ export const Route = createFileRoute("/profil")({
 
 
 function Page() {
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<"idle" | "request" | "verify">("idle");
-  const [otp, setOtp] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-  const [busy, setBusy] = useState(false);
+
 
   const { data: profile, refetch } = useQuery({
     queryKey: ["profile", user?.id],

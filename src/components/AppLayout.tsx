@@ -94,10 +94,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <button onClick={toggle} title={t("theme")} className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center">
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
-          <button onClick={() => setLang(lang === "fr" ? "en" : "fr")} title={t("lang")}
-            className="hidden md:flex items-center gap-1 px-2.5 py-2 rounded-md hover:bg-accent text-xs font-medium uppercase">
-            <Languages className="h-4 w-4" /> {lang}
-          </button>
+
 
           <Link to="/notifications" className="relative p-2.5 rounded-md hover:bg-accent">
             <Bell className="h-5 w-5" />

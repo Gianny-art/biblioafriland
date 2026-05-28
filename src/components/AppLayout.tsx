@@ -14,7 +14,7 @@ import motifAsset from "@/assets/motif.png";
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, role, signOut } = useAuth();
   const { theme, toggle } = useTheme();
-  const { lang, setLang, t } = useT();
+  const { t } = useT();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [unread, setUnread] = useState(0);

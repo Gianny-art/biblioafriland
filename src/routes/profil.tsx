@@ -71,27 +71,8 @@ function Page() {
     refetch();
   };
 
-  const requestOtp = async () => {
-    if (!user?.email) return;
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithOtp({ email: user.email, options: { shouldCreateUser: false } });
-    setBusy(false);
-    if (error) toast.error(error.message);
-    else { setStep("verify"); toast.success("Code envoyé par email"); }
-  };
 
-  const verifyAndChange = async () => {
-    if (!user?.email) return;
-    if (newPwd.length < 8) return toast.error("Mot de passe : 8 caractères minimum");
-    setBusy(true);
-    const { error: vErr } = await supabase.auth.verifyOtp({ email: user.email, token: otp, type: "email" });
-    if (vErr) { setBusy(false); return toast.error("Code invalide"); }
-    const { error } = await supabase.auth.updateUser({ password: newPwd });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Mot de passe modifié");
-    setStep("idle"); setOtp(""); setNewPwd("");
-  };
+
 
   const initials = (profile?.display_name || user?.email || "U").slice(0, 2).toUpperCase();
 

@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { Bell, Home, Newspaper, Tags, Search, Heart, User, LayoutDashboard, BookOpen, CreditCard, FileText, LogOut, Menu, X, Sun, Moon, Languages, Scale } from "lucide-react";
+import { Bell, Home, Newspaper, Tags, Search, Heart, User, LayoutDashboard, BookOpen, CreditCard, FileText, LogOut, Menu, X, Sun, Moon, Scale } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { useT } from "@/lib/i18n";

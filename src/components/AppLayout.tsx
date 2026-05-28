@@ -103,11 +103,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <Link to="/profil" className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center" title={t("profile")}>
             <User className="h-5 w-5" />
           </Link>
-          {role === "admin" && (
-            <Link to="/administration" className="hidden md:flex items-center gap-2 px-3 py-2 rounded-md bg-primary/10 text-primary hover:bg-primary/15 text-sm font-medium" title="Dashboard Admin">
-              <LayoutDashboard className="h-4 w-4" /> Admin
-            </Link>
-          )}
+
+
           <button onClick={() => { signOut(); navigate({ to: "/login" }); }} className="hidden md:grid p-2.5 rounded-md hover:bg-accent place-items-center" title={t("logout")}>
             <LogOut className="h-5 w-5" />
           </button>

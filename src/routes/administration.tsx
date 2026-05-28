@@ -101,8 +101,6 @@ function KPI({ label, value }: { label: string; value: number }) {
 const DIGITAL_PRICE = 150;
 const PAPER_PRICE = 400;
 const PAPER_PER_DAY = 40;
-const DIGITAL_COST_PER_READ = 20; // coût technique estimé
-const PAPER_COST_PER_UNIT = 220;
 
 function Analytics() {
   const { data } = useQuery({
@@ -114,65 +112,78 @@ function Analytics() {
         supabase.from("downloads").select("id", { count: "exact", head: true }).gte("downloaded_at", since),
         supabase.from("downloads").select("downloaded_at").gte("downloaded_at", since).order("downloaded_at"),
       ]);
-      // Group per day
       const map = new Map<string, number>();
       (downloads.data ?? []).forEach((d: any) => {
         const k = d.downloaded_at.slice(0, 10);
         map.set(k, (map.get(k) ?? 0) + 1);
       });
-      const days: { day: string; reads: number; revenue: number; profit: number }[] = [];
+      const days: { day: string; reads: number; revenue: number }[] = [];
       for (let i = 29; i >= 0; i--) {
         const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
         const r = map.get(d) ?? 0;
         const revenue = r * DIGITAL_PRICE + PAPER_PER_DAY * PAPER_PRICE;
-        const cost = r * DIGITAL_COST_PER_READ + PAPER_PER_DAY * PAPER_COST_PER_UNIT;
-        days.push({ day: d, reads: r, revenue, profit: revenue - cost });
+        days.push({ day: d, reads: r, revenue });
       }
       const totalRevenue = days.reduce((s, d) => s + d.revenue, 0);
-      const totalProfit = days.reduce((s, d) => s + d.profit, 0);
-      return { users: users.count ?? 0, totalReads: reads.count ?? 0, days, totalRevenue, totalProfit };
+      return { users: users.count ?? 0, totalReads: reads.count ?? 0, days, totalRevenue };
     },
   });
 
   if (!data) return <p className="text-muted-foreground">Chargement…</p>;
   const maxRevenue = Math.max(...data.days.map((d) => d.revenue), 1);
-  const w = 800, h = 240, pad = 30;
-  const pts = (key: "revenue" | "profit") =>
-    data.days.map((d, i) => {
-      const x = pad + (i * (w - 2 * pad)) / (data.days.length - 1);
-      const y = h - pad - ((d[key] as number) / maxRevenue) * (h - 2 * pad);
-      return `${x},${y}`;
-    }).join(" ");
+  const w = 800, h = 240, pad = 36;
+  const points = data.days.map((d, i) => {
+    const x = pad + (i * (w - 2 * pad)) / Math.max(1, data.days.length - 1);
+    const y = h - pad - (d.revenue / maxRevenue) * (h - 2 * pad);
+    return { x, y, ...d };
+  });
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const areaPath = `${linePath} L${points[points.length - 1].x},${h - pad} L${points[0].x},${h - pad} Z`;
 
   return (
     <>
       <h1 className="text-2xl md:text-3xl font-bold">Centre d'analyse</h1>
       <p className="text-sm text-muted-foreground">30 derniers jours · Prix numérique {DIGITAL_PRICE} FCFA · Prix papier {PAPER_PRICE} FCFA · {PAPER_PER_DAY} exemplaires papier/jour</p>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <KPI label="Utilisateurs inscrits" value={data.users} />
         <KPI label="Articles lus (30j)" value={data.totalReads} />
-        <BigKPI label="Revenu cumulé" value={`${data.totalRevenue.toLocaleString("fr-FR")} F`} accent="primary" />
-        <BigKPI label="Bénéfice cumulé" value={`${data.totalProfit.toLocaleString("fr-FR")} F`} accent="success" />
+        <BigKPI label="Revenu cumulé" value={`${data.totalRevenue.toLocaleString("fr-FR")} F`} />
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">Évolution revenus / bénéfices</h2>
-          <div className="flex gap-3 text-xs">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-primary inline-block" /> Revenus</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-success inline-block" /> Bénéfices</span>
-          </div>
+          <h2 className="font-semibold">Évolution du revenu (30 jours)</h2>
+          <span className="text-xs flex items-center gap-1.5 text-muted-foreground">
+            <span className="w-3 h-0.5 inline-block" style={{ background: "var(--primary)" }} /> Revenus FCFA
+          </span>
         </div>
-        <svg viewBox={`0 0 ${w} ${h}`} className="w-full">
-          {[0, 0.25, 0.5, 0.75, 1].map((t) => (
-            <line key={t} x1={pad} x2={w - pad} y1={h - pad - t * (h - 2 * pad)} y2={h - pad - t * (h - 2 * pad)} stroke="currentColor" className="text-border" strokeWidth={0.5} />
+        <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto">
+          <defs>
+            <linearGradient id="rev-grad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {[0, 0.25, 0.5, 0.75, 1].map((t) => {
+            const y = h - pad - t * (h - 2 * pad);
+            return (
+              <g key={t}>
+                <line x1={pad} x2={w - pad} y1={y} y2={y} stroke="var(--border)" strokeWidth={1} />
+                <text x={pad - 6} y={y + 3} textAnchor="end" fontSize="10" fill="var(--muted-foreground)">
+                  {Math.round(maxRevenue * t).toLocaleString("fr-FR")}
+                </text>
+              </g>
+            );
+          })}
+          <path d={areaPath} fill="url(#rev-grad)" />
+          <path d={linePath} fill="none" stroke="var(--primary)" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+          {points.map((p, i) => i % 3 === 0 && (
+            <circle key={i} cx={p.x} cy={p.y} r={2.5} fill="var(--primary)" />
           ))}
-          <polyline fill="none" stroke="oklch(var(--color-primary) / 1)" strokeWidth={2} points={pts("revenue")} />
-          <polyline fill="none" stroke="oklch(var(--color-success) / 1)" strokeWidth={2} points={pts("profit")} />
-          {data.days.map((d, i) => i % 5 === 0 && (
-            <text key={d.day} x={pad + (i * (w - 2 * pad)) / (data.days.length - 1)} y={h - 8} textAnchor="middle" className="fill-muted-foreground text-[10px]">
-              {d.day.slice(5)}
+          {points.map((p, i) => i % 5 === 0 && (
+            <text key={`l-${i}`} x={p.x} y={h - 10} textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">
+              {p.day.slice(5)}
             </text>
           ))}
         </svg>
@@ -181,14 +192,15 @@ function Analytics() {
   );
 }
 
-function BigKPI({ label, value, accent }: { label: string; value: string; accent: "primary" | "success" }) {
+function BigKPI({ label, value }: { label: string; value: string }) {
   return (
-    <div className={`bg-card border border-border rounded-xl p-5 border-l-4 ${accent === "primary" ? "border-l-primary" : "border-l-success"}`}>
+    <div className="bg-card border border-border rounded-xl p-5 border-l-4 border-l-primary">
       <p className="text-2xl font-bold">{value}</p>
       <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">{label}</p>
     </div>
   );
 }
+
 
 // === EDITIONS ===
 function EditionsAdmin() {
@@ -331,6 +343,18 @@ function EditionDialog({ edition, onClose, onSaved }: { edition?: any; onClose: 
         const { error } = await supabase.storage.from("newspaper-pdfs").upload(path, blob, { contentType: "image/jpeg" });
         if (!error) cover_url = supabase.storage.from("newspaper-pdfs").getPublicUrl(path).data.publicUrl;
       } catch (e) { /* ignore */ }
+    }
+    // Si pas de couverture définie, on hérite de la dernière parution de la même source
+    if (!cover_url) {
+      const { data: prev } = await supabase
+        .from("editions")
+        .select("cover_url")
+        .eq("newspaper_id", form.newspaper_id)
+        .not("cover_url", "is", null)
+        .order("edition_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (prev?.cover_url) cover_url = prev.cover_url;
     }
 
     const summaryValue = form.summary || (extractedText ? extractedText.slice(0, 500) : null);

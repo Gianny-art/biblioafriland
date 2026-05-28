@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
@@ -17,9 +17,9 @@ export const Route = createFileRoute("/journaux")({
 
 
 function Page() {
-  const { user, role } = useAuth();
+  const { role } = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"archives" | "recent" | "downloads">("recent");
+  const [tab, setTab] = useState<"archives" | "recent">("recent");
   const [newspaperId, setNewspaperId] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -48,45 +48,66 @@ function Page() {
     queryFn: async () => (await supabase.from("categories").select("id,name,slug")).data ?? [],
   });
 
-  const { data: editions = [] } = useQuery({
-    queryKey: ["editions", tab, newspaperId, categoryId, user?.id],
+  // Charge toutes les parutions, on déduplique côté client par source.
+  const { data: allEditions = [] } = useQuery({
+    queryKey: ["editions-all", newspaperId, categoryId],
     queryFn: async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-
-      if (tab === "downloads") {
-        if (!user) return [];
-        const { data: dl } = await supabase.from("downloads")
-          .select("downloaded_at, edition:editions(id, edition_date, title, page_count, cover_url, newspaper:newspapers!inner(id,name,slug,frequency,category_id,category:categories(name,slug)))")
-          .eq("user_id", user.id).order("downloaded_at", { ascending: false }).limit(80);
-        let rows = (dl ?? []).map((d: any) => d.edition).filter(Boolean);
-        if (newspaperId) rows = rows.filter((e: any) => e.newspaper.id === newspaperId);
-        if (categoryId) rows = rows.filter((e: any) => e.newspaper.category_id === categoryId);
-        return rows;
-      }
-
-      let q = supabase.from("editions").select("id, edition_date, title, page_count, cover_url, newspaper:newspapers!inner(id,name,slug,frequency,category_id,category:categories(name,slug))");
-      if (tab === "recent") q = q.gte("edition_date", sevenDaysAgo).order("edition_date", { ascending: false });
-      else q = q.lt("edition_date", sevenDaysAgo).order("edition_date", { ascending: false });
-      q = q.limit(80);
+      let q = supabase
+        .from("editions")
+        .select("id, edition_date, title, page_count, cover_url, created_at, newspaper:newspapers!inner(id,name,slug,frequency,category_id,category:categories(name,slug))")
+        .order("edition_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(500);
       if (newspaperId) q = q.eq("newspaper_id", newspaperId);
       if (categoryId) q = q.eq("newspaper.category_id", categoryId);
       return (await q).data ?? [];
     },
   });
 
+  // Une carte par source (la plus récente) + héritage de couverture si manquante.
+  const { latestPerSource, archives } = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const e of allEditions as any[]) {
+      const k = e.newspaper.id;
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(e);
+    }
+    const latest: any[] = [];
+    const archs: any[] = [];
+    const sevenDaysAgoMs = Date.now() - 7 * 86400000;
+    for (const list of map.values()) {
+      // déjà trié desc par edition_date puis created_at
+      const [top, ...rest] = list;
+      // héritage couverture : si la dernière n'a pas de cover, prendre celle d'une plus ancienne
+      if (!top.cover_url) {
+        const prev = rest.find((r) => r.cover_url);
+        if (prev) top.cover_url = prev.cover_url;
+      }
+      latest.push(top);
+      for (const r of rest) {
+        const ts = new Date(r.edition_date).getTime();
+        if (ts >= sevenDaysAgoMs) archs.push(r);
+      }
+    }
+    latest.sort((a, b) => +new Date(b.edition_date) - +new Date(a.edition_date));
+    archs.sort((a, b) => +new Date(b.edition_date) - +new Date(a.edition_date));
+    return { latestPerSource: latest, archives: archs };
+  }, [allEditions]);
+
+  const editions = tab === "recent" ? latestPerSource : archives;
+
   return (
     <div className="space-y-6 relative">
       <MotifBg opacity={0.04} />
       <div className="relative">
         <h1 className="text-2xl md:text-3xl font-bold">Bibliothèque</h1>
-        <p className="text-sm text-muted-foreground mt-1">Toutes les parutions, classées par fraîcheur.</p>
+        <p className="text-sm text-muted-foreground mt-1">Une carte par journal — les anciennes parutions glissent en archives (7 jours).</p>
       </div>
 
       <div className="relative flex gap-6 border-b border-border">
         {[
           { k: "recent", label: "Parutions récentes" },
-          { k: "archives", label: "Archives" },
-          { k: "downloads", label: "Mes téléchargements" },
+          { k: "archives", label: "Archives (7 jours)" },
         ].map((t) => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
             className={`pb-3 text-sm font-medium border-b-2 -mb-px ${tab === t.k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
@@ -130,12 +151,12 @@ function Page() {
           </div>
         ))}
         {editions.length === 0 && <p className="text-muted-foreground text-sm col-span-full text-center py-12">
-          {tab === "downloads" ? "Vous n'avez encore téléchargé aucun journal." : tab === "recent" ? "Aucune parution récente (moins de 7 jours)." : "Aucune archive."}
+          {tab === "recent" ? "Aucune parution disponible." : "Aucune archive sur les 7 derniers jours."}
         </p>}
       </div>
 
       {pending && (
-        <DropDialog item={pending} onClose={() => setPending(null)} onSaved={() => { setPending(null); qc.invalidateQueries({ queryKey: ["editions"] }); }} />
+        <DropDialog item={pending} onClose={() => setPending(null)} onSaved={() => { setPending(null); qc.invalidateQueries({ queryKey: ["editions-all"] }); }} />
       )}
     </div>
   );
@@ -154,9 +175,33 @@ function DropDialog({ item, onClose, onSaved }: { item: { file: File; newspaperI
     const { error: upErr } = await supabase.storage.from("newspaper-pdfs").upload(path, item.file);
     if (upErr) { setSaving(false); return toast.error(upErr.message); }
     const pdf_url = supabase.storage.from("newspaper-pdfs").getPublicUrl(path).data.publicUrl;
+
+    // Héritage : couverture de la dernière parution de la même source
+    let cover_url: string | null = null;
+    const { data: prev } = await supabase
+      .from("editions")
+      .select("cover_url")
+      .eq("newspaper_id", item.newspaperId)
+      .not("cover_url", "is", null)
+      .order("edition_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prev?.cover_url) cover_url = prev.cover_url;
+
+    // Sinon, génération auto depuis la page 1 du PDF
+    if (!cover_url) {
+      try {
+        const { renderPdfPageToBlob } = await import("@/components/PdfPage");
+        const blob = await renderPdfPageToBlob(item.file, 1, 1.5);
+        const cpath = `covers/${item.newspaperId}/${date}-${Date.now()}-auto.jpg`;
+        const { error: cErr } = await supabase.storage.from("newspaper-pdfs").upload(cpath, blob, { contentType: "image/jpeg" });
+        if (!cErr) cover_url = supabase.storage.from("newspaper-pdfs").getPublicUrl(cpath).data.publicUrl;
+      } catch { /* ignore */ }
+    }
+
     const { data: ed, error } = await supabase.from("editions").insert({
       newspaper_id: item.newspaperId, edition_date: date, title: title || null,
-      page_count: pages, pdf_url,
+      page_count: pages, pdf_url, cover_url,
     }).select().single();
     if (error) { setSaving(false); return toast.error(error.message); }
     if (ed) {
@@ -188,4 +233,3 @@ function DropDialog({ item, onClose, onSaved }: { item: { file: File; newspaperI
     </div>
   );
 }
-

@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Lock, LogOut, Camera, ShieldCheck, Mail } from "lucide-react";
+import { Lock, LogOut, Camera, ShieldCheck, Mail, Activity, Eye, Search as SearchIcon, Star, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
@@ -12,6 +12,7 @@ export const Route = createFileRoute("/profil")({
   head: () => ({ meta: [{ title: "Mon profil — Bibliothèque numérique" }] }),
   component: () => <AppLayout><Page /></AppLayout>,
 });
+
 
 function Page() {
   const { user, signOut } = useAuth();
@@ -26,6 +27,32 @@ function Page() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () => (await supabase.from("profiles").select("*").eq("user_id", user!.id).maybeSingle()).data,
+  });
+
+  const { data: activity } = useQuery({
+    queryKey: ["my-activity", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const [dls, srch, fav, alr, recent] = await Promise.all([
+        supabase.from("downloads").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase.from("search_history").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase.from("favorites").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase.from("alerts").select("id", { count: "exact", head: true }).eq("user_id", user!.id).eq("active", true),
+        supabase.from("downloads")
+          .select("downloaded_at, edition:editions(id, edition_date, title, newspaper:newspapers(name,slug))")
+          .eq("user_id", user!.id)
+          .order("downloaded_at", { ascending: false })
+          .limit(8),
+      ]);
+      return {
+        downloads: dls.count ?? 0,
+        searches: srch.count ?? 0,
+        favorites: fav.count ?? 0,
+        alerts: alr.count ?? 0,
+        recent: recent.data ?? [],
+      };
+    },
+
   });
 
   useEffect(() => {}, []);
@@ -139,10 +166,59 @@ function Page() {
             </div>
           )}
         </section>
+
+        <section className="bg-card border border-border rounded-xl p-6">
+          <h2 className="font-semibold flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Mon activité</h2>
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <ActivityStat icon={Eye} label="Lectures" value={activity?.downloads ?? 0} />
+            <ActivityStat icon={SearchIcon} label="Recherches" value={activity?.searches ?? 0} />
+            <ActivityStat icon={Star} label="Favoris" value={activity?.favorites ?? 0} />
+            <ActivityStat icon={Bell} label="Alertes actives" value={activity?.alerts ?? 0} />
+          </div>
+          <div className="mt-5">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Dernières lectures</p>
+            {activity && activity.recent.length > 0 ? (
+              <ul className="divide-y divide-border border border-border rounded-md">
+                {activity.recent.map((r: any, i: number) => (
+                  <li key={i} className="p-3 flex items-center justify-between text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{r.edition?.newspaper?.name ?? "Journal"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {r.edition?.title ?? `Édition du ${r.edition?.edition_date ?? ""}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(r.downloaded_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                      </span>
+                      {r.edition?.id && (
+                        <Link to="/lecteur/$editionId" params={{ editionId: r.edition.id }} className="text-xs text-primary">
+                          Rouvrir
+                        </Link>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Aucune lecture pour l'instant. Ouvrez un journal depuis la bibliothèque.</p>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
 }
+
+function ActivityStat({ icon: I, label, value }: { icon: any; label: string; value: number }) {
+  return (
+    <div className="border border-border rounded-lg p-3 bg-background/50">
+      <div className="flex items-center gap-2 text-muted-foreground"><I className="h-3.5 w-3.5" /><span className="text-[10px] uppercase tracking-wide">{label}</span></div>
+      <p className="text-2xl font-bold mt-1">{String(value).padStart(2, "0")}</p>
+    </div>
+  );
+}
+
 
 function Field({ label, value }: { label: string; value: string }) {
   return (

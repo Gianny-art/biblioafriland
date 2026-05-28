@@ -7,6 +7,9 @@ import { useAuth } from "@/lib/auth-context";
 import AppLayout from "@/components/AppLayout";
 import { NewspaperLogo } from "@/components/NewspaperLogo";
 import NewsTicker from "@/components/NewsTicker";
+import NewsChannel from "@/components/NewsChannel";
+
+
 
 
 
@@ -154,11 +157,14 @@ function Home() {
         </section>
       </div>
 
+      <NewsChannel />
+
       <NewsTicker />
     </div>
   );
 
 }
+
 
 function Stat({ icon: I, label, value }: any) {
   return (
